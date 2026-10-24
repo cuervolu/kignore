@@ -1,0 +1,165 @@
+scenario negation/basic-reinclude
+kind normative
+spec An optional prefix "!" which negates the pattern; any matching file excluded by a previous pattern will become included again.
+file .gitignore
+| *.log
+| !important.log
+path debug.log
+path important.log
+path dir/important.log
+path dir/other.log
+path readme.md
+
+scenario negation/last-match-wins
+kind normative
+spec Within one .gitignore file, the last matching pattern decides the outcome.
+file .gitignore
+| *.txt
+| !a.txt
+| a.txt
+| b.txt
+| !b.txt
+path a.txt
+path b.txt
+path c.txt
+
+scenario negation/order-matters
+kind normative
+spec The order of patterns matters: a negated pattern before the pattern it should override has no effect.
+file .gitignore
+| !keep.log
+| *.log
+path keep.log
+path other.log
+
+scenario negation/negation-without-prior-match
+kind normative
+spec A negated pattern that matches a path nothing excluded reports an explicit inclusion.
+file .gitignore
+| !foo
+path foo
+path bar
+path dir/foo
+
+scenario negation/parent-excluded
+kind normative
+spec It is not possible to re-include a file if a parent directory of that file is excluded.
+file .gitignore
+| build/
+| !build/keep.txt
+path build/keep.txt
+path build/other.txt
+path build/
+path src/build/keep.txt
+
+scenario negation/parent-excluded-with-wildcard-dir
+kind normative
+spec It is not possible to re-include a file if a parent directory of that file is excluded.
+file .gitignore
+| /build
+| !/build/keep.txt
+path build
+path build/
+path build/keep.txt
+path build/sub/keep.txt
+
+scenario negation/reinclude-by-contents-pattern
+kind normative
+spec Excluding the contents of a directory with "dir/*" rather than the directory itself makes it possible to re-include entries.
+file .gitignore
+| build/*
+| !build/keep.txt
+path build/keep.txt
+path build/other.txt
+path build/sub/file
+path build/
+path build
+
+scenario negation/reinclude-directory-but-not-its-contents
+kind normative
+spec A negated directory pattern re-includes the directory only; files inside still match their own rules.
+file .gitignore
+| /*
+| !/src/
+| /src/*
+| !/src/main/
+path README.md
+path src/
+path src/main/
+path src/main/App.kt
+path src/test/
+path src/notes.txt
+path docs/
+
+scenario negation/escaped-leading-bang
+kind normative
+spec Put a backslash ("\") in front of the first "!" for patterns that begin with a literal "!", for example, "\!important!.txt".
+file .gitignore
+| \!important!.txt
+path !important!.txt
+path important!.txt
+path dir/!important!.txt
+
+scenario negation/bang-after-first-character
+kind normative
+spec An exclamation mark that is not first in the pattern is an ordinary character.
+file .gitignore
+| a!b
+| c!
+path a!b
+path ab
+path c!
+path dir/c!
+
+scenario negation/double-negation
+kind normative
+spec Only the first exclamation mark is special, so "!!foo" negates the literal pattern "!foo".
+file .gitignore
+| !!foo
+path !foo
+path foo
+path dir/!foo
+
+scenario negation/negated-directory-pattern
+kind normative
+spec A negated pattern with a trailing slash re-includes only directories.
+file .gitignore
+| *
+| !*/
+path a.txt
+path dir/
+path dir/a.txt
+path dir/sub/
+path dir
+
+scenario negation/negated-anchored
+kind normative
+spec A negated anchored pattern only counters matches at the anchored location.
+file .gitignore
+| *.bin
+| !/tool.bin
+path tool.bin
+path sub/tool.bin
+path other.bin
+
+scenario negation/reexclude-after-reinclude
+kind normative
+spec The last matching pattern wins, so a pattern may exclude again what an earlier negation included.
+file .gitignore
+| *.tmp
+| !*.tmp
+| keep/*.tmp
+path a.tmp
+path keep/a.tmp
+path keep/sub/a.tmp
+path other/a.tmp
+
+scenario negation/negated-wildcard-directory
+kind normative
+spec A file inside an ignored directory stays ignored even when a later negation names it with a wildcard.
+file .gitignore
+| out/
+| !out/**
+path out/
+path out/a.txt
+path out/sub/b.txt

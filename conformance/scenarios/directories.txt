@@ -1,0 +1,72 @@
+scenario directories/trailing-slash-matches-only-directories
+kind normative
+spec If there is a separator at the end of the pattern then the pattern will only match directories, otherwise the pattern can match both files and directories.
+file .gitignore
+| build/
+path build/
+path build
+path src/build/
+path src/build
+path build/a
+path build/a/b
+path src/build/a
+
+scenario directories/no-slash-matches-file-and-directory
+kind normative
+spec Otherwise the pattern can match both files and directories.
+file .gitignore
+| build
+path build/
+path build
+path src/build/
+path src/build
+path build/a
+
+scenario directories/ignored-directory-contents
+kind normative
+spec Git does not list the contents of an excluded directory, so everything beneath an ignored directory is ignored.
+file .gitignore
+| vendor/
+path vendor/
+path vendor/lib.c
+path vendor/a/b/c.c
+path vendor/a/
+path vendor/.hidden
+path vendors/lib.c
+
+scenario directories/wildcard-with-trailing-slash
+kind normative
+spec For example, a pattern "doc/frotz/" matches "doc/frotz" directory, but not "a/doc/frotz" directory.
+file .gitignore
+| doc/frotz/
+| *.d/
+path doc/frotz/
+path doc/frotz
+path a/doc/frotz/
+path x.d/
+path x.d
+path a/x.d/
+path x.d/file
+path x.dd/
+
+scenario directories/trailing-slash-pattern-on-file-named-like-dir
+kind normative
+spec A pattern ending in a slash never matches a regular file.
+file .gitignore
+| log/
+path log
+path a/log
+path log/
+path a/log/
+
+scenario directories/pattern-with-double-trailing-slash
+kind git-quirk
+spec Behavior of a pattern ending in several slashes is not described by gitignore(5).
+note Git strips only the final slash and then compares the remainder, so the extra slash keeps the pattern from matching.
+file .gitignore
+| a//
+| b//c
+path a/
+path b/c
+path b/c/
+path b/

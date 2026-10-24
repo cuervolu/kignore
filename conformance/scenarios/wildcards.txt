@@ -1,0 +1,185 @@
+# Wildcards: *, ? and **. Authoring format is described in conformance/README.md.
+
+scenario wildcards/star-matches-within-segment
+kind normative
+spec An asterisk matches anything except a slash.
+file .gitignore
+| *.log
+| a*z
+path debug.log
+path .log
+path dir/debug.log
+path debug.log.bak
+path az
+path abz
+path a/z
+path a/bz
+path abcz/
+path a-z.txt
+
+scenario wildcards/star-does-not-cross-slash
+kind normative
+spec An asterisk matches anything except a slash, so a pattern containing a slash stays within each segment.
+file .gitignore
+| doc/*.md
+path doc/a.md
+path doc/sub/a.md
+path other/doc/a.md
+path doc/.md
+path doc/
+
+scenario wildcards/star-alone
+kind normative
+spec A lone asterisk matches every name at any level.
+file .gitignore
+| *
+path a
+path a/b
+path .hidden
+path dir/
+path dir/nested/file
+
+scenario wildcards/question-mark
+kind normative
+spec The character ? matches any one character except a slash.
+file .gitignore
+| file?.txt
+| ?
+path file1.txt
+path file.txt
+path file12.txt
+path file/.txt
+path x
+path xy
+path dir/x
+path dir/xy
+
+scenario wildcards/question-mark-not-slash
+kind normative
+spec The character ? matches any one character except a slash.
+file .gitignore
+| a?b
+path a-b
+path a/b
+path aab
+path ab
+
+scenario wildcards/double-star-leading
+kind normative
+spec A leading "**" followed by a slash means match in all directories.
+file .gitignore
+| **/foo
+path foo
+path a/foo
+path a/b/foo
+path foo/bar
+path a/foo/bar
+path xfoo
+path a/xfoo
+
+scenario wildcards/double-star-leading-with-path
+kind normative
+spec A leading "**" followed by a slash means match in all directories. For example, "**/foo/bar" matches the file or directory "bar" anywhere that is directly under directory "foo".
+file .gitignore
+| **/foo/bar
+path foo/bar
+path a/foo/bar
+path a/b/foo/bar
+path foo/baz/bar
+path foo/bar/baz
+path bar
+
+scenario wildcards/double-star-trailing
+kind normative
+spec A trailing "/**" matches everything inside. For example, "abc/**" matches all files inside directory "abc", relative to the location of the .gitignore file, with infinite depth.
+file .gitignore
+| abc/**
+path abc
+path abc/
+path abc/x
+path abc/x/y
+path abc/x/
+path other/abc/x
+path abcd/x
+
+scenario wildcards/double-star-middle
+kind normative
+spec A slash followed by two consecutive asterisks then a slash matches zero or more directories. For example, "a/**/b" matches "a/b", "a/x/b", "a/x/y/b" and so on.
+file .gitignore
+| a/**/b
+path a/b
+path a/x/b
+path a/x/y/b
+path a/x/y/z/b
+path a/xb
+path ab
+path x/a/b
+path a/b/c
+path a/x/b/c
+
+scenario wildcards/double-star-both-ends
+kind normative
+spec A leading "**" followed by a slash means match in all directories. A trailing "/**" matches everything inside.
+file .gitignore
+| **/cache/**
+path cache
+path cache/
+path cache/a
+path x/cache/a
+path x/y/cache/a/b
+path x/cache
+path mycache/a
+
+scenario wildcards/double-star-only
+kind normative
+spec A lone "**" is a wildcard pattern like any other and behaves as the one-segment pattern "*" at any depth.
+file .gitignore
+| **
+path a
+path a/b
+path a/b/c
+path .x
+
+scenario wildcards/double-star-adjacent-text
+kind normative
+spec Other consecutive asterisks are considered regular asterisks and will match according to the previous rules.
+file .gitignore
+| a**b
+| c/x**
+| **y/d
+path ab
+path a-b
+path a/b
+path axxb
+path c/x
+path c/xyz
+path c/x/y
+path zy/d
+path y/d
+path a/zy/d
+path z/y/d
+
+scenario wildcards/triple-star
+kind git-quirk
+spec Other consecutive asterisks are considered regular asterisks, but runs of three are not covered by an example.
+note Git lets "a/***/b" span several directories, so it does not treat the run as a plain asterisk.
+file .gitignore
+| a/***/b
+| ***.tmp
+path a/b
+path a/x/b
+path a/x/y/b
+path x.tmp
+path d/x.tmp
+
+scenario wildcards/star-mixed-with-double-star
+kind normative
+spec A slash followed by two consecutive asterisks then a slash matches zero or more directories.
+file .gitignore
+| src/**/*.gen.kt
+path src/A.gen.kt
+path src/a/A.gen.kt
+path src/a/b/A.gen.kt
+path src/A.kt
+path other/src/A.gen.kt
+path src/gen.kt

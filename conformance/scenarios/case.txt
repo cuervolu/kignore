@@ -1,0 +1,91 @@
+scenario case/sensitive-by-default
+kind normative
+spec Patterns are case sensitive unless Git is told otherwise.
+file .gitignore
+| Readme.md
+| *.LOG
+| [A-C]x
+path Readme.md
+path readme.md
+path README.MD
+path a.LOG
+path a.log
+path Ax
+path ax
+
+scenario case/ignorecase-enabled
+kind platform
+spec core.ignorecase makes Git match patterns without regard to case.
+note The setting is chosen by the user or by the filesystem at clone time, so it is not part of the portable semantics.
+config core.ignorecase=true
+file .gitignore
+| Readme.md
+| *.LOG
+| build/
+path Readme.md
+path readme.md
+path README.MD
+path a.log
+path a.Log
+path BUILD/
+path Build/
+path other/build/
+
+scenario case/ignorecase-with-bracket-ranges
+kind platform
+spec core.ignorecase makes Git match patterns without regard to case.
+config core.ignorecase=true
+file .gitignore
+| [a-c]x
+| [[:upper:]]y
+path ax
+path Ax
+path Cx
+path dx
+path ay
+path Ay
+
+scenario case/ignorecase-negation
+kind platform
+spec core.ignorecase makes Git match patterns without regard to case.
+config core.ignorecase=true
+file .gitignore
+| *.log
+| !Keep.LOG
+path a.log
+path keep.log
+path KEEP.log
+
+scenario case/ignorecase-nested-file-name
+kind platform
+spec core.ignorecase makes Git match patterns without regard to case.
+config core.ignorecase=true
+file sub/.gitignore
+| secret
+path sub/secret
+path sub/SECRET
+
+scenario case/ignorecase-non-ascii
+kind platform
+spec core.ignorecase makes Git match patterns without regard to case.
+note Case folding in Git covers ASCII letters only.
+config core.ignorecase=true
+file .gitignore
+| caf`u00E9
+| `u00C9cole
+path caf`u00E9
+path caf`u00C9
+path `u00E9cole
+path `u00C9cole
+
+scenario case/names-that-differ-only-by-case
+kind normative
+spec Patterns are case sensitive.
+file .gitignore
+| /Foo
+| /bar/
+path Foo
+path foo
+path FOO
+path bar/
+path Bar/

@@ -1,0 +1,263 @@
+scenario characters/bracket-range
+kind normative
+spec The range notation, e.g. [a-zA-Z], can be used to match one of the characters in a range.
+file .gitignore
+| file[0-9].txt
+| [a-c]x
+path file0.txt
+path file9.txt
+path filea.txt
+path file10.txt
+path file.txt
+path ax
+path cx
+path dx
+path dir/bx
+
+scenario characters/bracket-set-and-negation
+kind normative
+spec A bracket expression matches one of the listed characters; "!" or "^" right after the opening bracket negates it.
+file .gitignore
+| a[xyz]
+| b[!xyz]
+| c[^xyz]
+path ax
+path az
+path aw
+path bw
+path bx
+path cw
+path cx
+path c/
+
+scenario characters/bracket-does-not-match-slash
+kind normative
+spec Wildcards in git match with the pathname flag, so a bracket expression never matches a slash.
+file .gitignore
+| a[!x]b
+| c[^x]d
+path a-b
+path a/b
+path c-d
+path c/d
+
+scenario characters/bracket-close-first
+kind git-quirk
+spec Behavior follows fnmatch(3) as used by Git's wildmatch.
+note A closing bracket directly after the opening bracket or after the negation is a literal member of the set.
+file .gitignore
+| a[]]b
+| c[!]]d
+path a]b
+path ab
+path a[b
+path c-d
+path c]d
+
+scenario characters/bracket-literal-dash
+kind git-quirk
+spec Behavior follows fnmatch(3) as used by Git's wildmatch.
+note A dash first or last in a set is literal.
+file .gitignore
+| a[-x]
+| b[x-]
+| c[a-]
+path a-
+path ax
+path ay
+path b-
+path bx
+path c-
+path ca
+
+scenario characters/bracket-reversed-range
+kind git-quirk
+spec A range whose end precedes its start is not described by gitignore(5).
+note Observed behavior of Git, kept to document the behavior.
+file .gitignore
+| a[z-a]
+path az
+path aa
+path am
+
+scenario characters/bracket-character-classes
+kind normative
+spec The pattern syntax of fnmatch(3) is used, including POSIX character classes such as [[:alpha:]].
+file .gitignore
+| a[[:digit:]]
+| b[[:upper:]]
+| c[[:alpha:][:digit:]]
+| d[[:space:]]
+| e[![:alnum:]]
+path a5
+path aa
+path bA
+path bb
+path cx
+path c5
+path c-
+path d`s
+path dx
+path e-
+path ex
+path e5
+
+scenario characters/bracket-unknown-class
+kind git-quirk
+spec An unknown POSIX class name is not described by gitignore(5).
+note Git treats the whole pattern as non-matching when a class name is unknown.
+file .gitignore
+| a[[:nosuch:]]
+| b[[:digit:]]
+path a1
+path anosuch
+path b1
+
+scenario characters/bracket-unterminated
+kind git-quirk
+spec Unterminated bracket expressions are not described by gitignore(5).
+note Git never matches a pattern whose bracket expression is not closed.
+file .gitignore
+| a[bc
+| [
+| x[
+path a[bc
+path ab
+path [
+path x[
+path x
+
+scenario characters/bracket-with-escape
+kind normative
+spec A backslash escapes the next character, including inside a bracket expression.
+file .gitignore
+| a[\]]b
+| c[\-x]
+path a]b
+path ab
+path a\b
+path c-
+path cx
+path c\
+
+scenario characters/escaped-wildcards
+kind normative
+spec A backslash makes the following wildcard character an ordinary character.
+file .gitignore
+| a\*b
+| c\?d
+| e\[f\]
+path a*b
+path aXb
+path c?d
+path cXd
+path e[f]
+path eXf
+
+scenario characters/escaped-ordinary-character
+kind normative
+spec A backslash in front of an ordinary character yields that character.
+file .gitignore
+| \a\b\c
+| d\.txt
+path abc
+path d.txt
+path \a\b\c
+path a\b\c
+
+scenario characters/escaped-backslash
+kind normative
+spec A doubled backslash matches one literal backslash.
+file .gitignore
+| a\\b
+| c\\*
+path a\b
+path ab
+path a\\b
+path c\
+path c\x
+path cx
+
+scenario characters/trailing-backslash
+kind normative
+spec A pattern that ends in an unescaped backslash is invalid and never matches.
+file .gitignore
+| abc\
+| def\\
+path abc
+path abc\
+path def\\
+path def\
+path def
+
+scenario characters/escaped-slash-and-space
+kind git-quirk
+spec Escapes in front of a separator are not described by gitignore(5).
+note Git matches the pattern text verbatim, so an escaped slash behaves like a literal path separator in the pattern.
+file .gitignore
+| a\/b
+| c\ d
+path a/b
+path c`sd
+path c`sd/x
+
+scenario characters/hash-and-leading-special
+kind normative
+spec A line starting with # serves as a comment. Put a backslash in front of the first hash for patterns that begin with a hash.
+file .gitignore
+| \#notcomment
+| #comment
+| a#b
+path #notcomment
+path comment
+path #comment
+path a#b
+path notcomment
+
+scenario characters/regex-metacharacters-are-literal
+kind normative
+spec Only *, ?, [ and the backslash are special; other characters match themselves.
+file .gitignore
+| a.b
+| c+d
+| (e)
+| f{1,2}
+| g|h
+| i^j
+| k$l
+| m%n
+path a.b
+path axb
+path c+d
+path ccd
+path (e)
+path e
+path f{1,2}
+path ff
+path g|h
+path g
+path i^j
+path k$l
+path m%n
+
+scenario characters/names-with-spaces
+kind normative
+spec Trailing spaces are ignored unless they are quoted with backslash; spaces inside a pattern are literal.
+file .gitignore
+| my`sfile.txt
+| two  spaces
+| tab`there
+path my`sfile.txt
+path myfile.txt
+path two`s`sspaces
+path two`sspaces
+path tab`there
+path tabthere
+
+scenario characters/leading-space
+kind normative
+spec Leading spaces are significant.
+file .gitignore
+| `sleading
+path `sleading
+path leading

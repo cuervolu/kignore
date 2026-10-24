@@ -1,10 +1,11 @@
 package dev.cuervolu
 
 import dev.cuervolu.kignore.getFibonacciNumbers
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFails
 
 class FibonacciTest {
-
     @Test
     fun testFibonacciNumbers() {
         assertFails {
@@ -12,8 +13,7 @@ class FibonacciTest {
         }
         assertEquals(
             listOf(0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377),
-            getFibonacciNumbers(15)
+            getFibonacciNumbers(15),
         )
     }
-
 }

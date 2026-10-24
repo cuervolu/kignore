@@ -1,0 +1,106 @@
+scenario nested/child-rules-are-relative
+kind normative
+spec Patterns in a .gitignore file in a subdirectory are relative to that directory.
+file sub/.gitignore
+| /only
+| local.log
+| doc/x
+path sub/only
+path sub/deep/only
+path only
+path sub/local.log
+path sub/a/local.log
+path local.log
+path sub/doc/x
+path sub/a/doc/x
+
+scenario nested/child-overrides-parent
+kind normative
+spec Patterns read from a .gitignore file in the same directory as the path, or in any parent directory, with patterns in the higher level files being overridden by those in lower level files down to the directory containing the file.
+file .gitignore
+| *.log
+file sub/.gitignore
+| !keep.log
+path a.log
+path keep.log
+path sub/a.log
+path sub/keep.log
+path sub/deep/keep.log
+path other/keep.log
+
+scenario nested/parent-cannot-override-child
+kind normative
+spec Patterns in lower level files take precedence over patterns in higher level files.
+file .gitignore
+| !a.txt
+file sub/.gitignore
+| a.txt
+path a.txt
+path sub/a.txt
+path sub/deeper/a.txt
+
+scenario nested/child-negation-under-ignored-parent-directory
+kind normative
+spec It is not possible to re-include a file if a parent directory of that file is excluded, including when the negation lives in a deeper .gitignore.
+file .gitignore
+| build/
+file build/.gitignore
+| !keep.txt
+path build/keep.txt
+path build/other.txt
+path build/
+
+scenario nested/ignore-file-itself
+kind normative
+spec A .gitignore file is an ordinary path and can be matched by patterns like any other.
+file .gitignore
+| .gitignore
+file sub/.gitignore
+| *
+path .gitignore
+path sub/.gitignore
+path sub/a
+path sub/b/c
+
+scenario nested/three-levels
+kind normative
+spec Patterns in lower level files override those in higher level files.
+file .gitignore
+| *.o
+file a/.gitignore
+| !*.o
+file a/b/.gitignore
+| x.o
+path z.o
+path a/z.o
+path a/b/z.o
+path a/b/x.o
+path a/b/c/x.o
+path a/b/c/y.o
+
+scenario nested/sibling-isolation
+kind normative
+spec A .gitignore only affects its own directory and below.
+file a/.gitignore
+| secret
+file b/.gitignore
+| other
+path a/secret
+path b/secret
+path a/other
+path b/other
+path secret
+
+scenario nested/anchored-in-child-with-double-star
+kind normative
+spec A leading "**" in a nested file is relative to that file's directory.
+file sub/.gitignore
+| **/gen
+| /a/**/z
+path sub/gen
+path sub/x/gen
+path gen
+path x/gen
+path sub/a/z
+path sub/a/b/z
+path a/z

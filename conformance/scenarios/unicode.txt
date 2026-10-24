@@ -1,0 +1,137 @@
+scenario unicode/bmp-literal
+kind normative
+spec Patterns are compared byte for byte, so non-ASCII characters match themselves.
+file .gitignore
+| caf`u00E9
+| `u65E5`u672C`u8A9E/
+| `u00FC*
+path caf`u00E9
+path cafe
+path dir/caf`u00E9
+path `u65E5`u672C`u8A9E/
+path `u65E5`u672C`u8A9E
+path `u00FCber
+path uber
+
+scenario unicode/wildcards-match-whole-characters
+kind git-quirk
+spec A question mark matches any one character except a slash.
+note Git compares bytes, so a question mark matches a single byte and not a whole non-ASCII character.
+file .gitignore
+| caf?
+| a?b
+| a??b
+path caf`u00E9
+path cafe
+path a`u00E9b
+path a`u00E9`u00E9b
+path a`u4E16b
+path a`u4E16`u4E16b
+
+scenario unicode/bracket-with-non-ascii
+kind git-quirk
+spec A bracket expression matches one of the listed characters.
+note Git compares bytes, so a non-ASCII member of a bracket expression is a set of bytes.
+file .gitignore
+| a[`u00E9`u00E8]
+| b[^x]
+path a`u00E9
+path a`u00E8
+path ae
+path b`u00E9
+path bx
+
+scenario unicode/outside-bmp
+kind normative
+spec Patterns are compared byte for byte, so characters outside the basic multilingual plane match themselves.
+file .gitignore
+| `u{1F600}.txt
+| dir`u{1D11E}/
+| *`u{1F680}
+path `u{1F600}.txt
+path `u{1F601}.txt
+path dir`u{1D11E}/
+path dir`u{1D11E}
+path x`u{1F680}
+path x`u{1F681}
+path a/b`u{1F680}
+
+scenario unicode/outside-bmp-question-mark
+kind git-quirk
+spec A question mark matches any one character except a slash.
+note Git compares bytes, so one question mark does not match a four byte character and four of them do.
+file .gitignore
+| a?b
+| c????d
+path a`u{1F600}b
+path c`u{1F600}d
+
+scenario unicode/composed-and-decomposed-differ
+kind normative
+spec Patterns are compared byte for byte, so a composed character does not match its decomposed form.
+file .gitignore
+| caf`u00E9
+| nai`u0308ve
+path caf`u00E9
+path cafe`u0301
+path nai`u0308ve
+path na`u00EFve
+
+scenario unicode/decomposed-pattern
+kind normative
+spec Patterns are compared byte for byte, so a decomposed character does not match its composed form.
+file .gitignore
+| cafe`u0301
+path cafe`u0301
+path caf`u00E9
+
+scenario unicode/precomposeunicode-enabled
+kind platform
+spec Unicode normalization is not part of gitignore(5).
+note core.precomposeunicode only affects how Git reads names from some filesystems and does not change how a pattern is compared.
+config core.precomposeunicode=true
+file .gitignore
+| caf`u00E9
+path caf`u00E9
+path cafe`u0301
+
+scenario unicode/combining-mark-as-wildcard-target
+kind git-quirk
+spec An asterisk matches anything except a slash.
+file .gitignore
+| a*
+path ae`u0301
+path a`u0301
+path a
+
+scenario unicode/zero-width-and-control-characters
+kind normative
+spec Patterns are compared byte for byte.
+file .gitignore
+| a`u200Bb
+| c`u00A0d
+path a`u200Bb
+path ab
+path c`u00A0d
+path c`sd
+
+scenario unicode/non-ascii-in-directory-names
+kind normative
+spec Directory patterns follow the same rules for any characters.
+file .gitignore
+| `u00E9t`u00E9/
+| /`u0434`u043E`u043A/*.md
+path `u00E9t`u00E9/
+path a/`u00E9t`u00E9/
+path `u00E9t`u00E9/file
+path `u0434`u043E`u043A/a.md
+path `u0434`u043E`u043A/b/a.md
+
+scenario unicode/non-ascii-ignore-file-path
+kind normative
+spec Patterns in a nested ignore file are relative to its directory, whatever the directory name.
+file `u00E9t`u00E9/.gitignore
+| secret
+path `u00E9t`u00E9/secret
+path secret
+path ete`u0301/secret

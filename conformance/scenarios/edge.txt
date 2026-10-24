@@ -1,0 +1,253 @@
+scenario edge/lone-slash
+kind git-quirk
+spec A pattern consisting only of a slash is not described by gitignore(5).
+file .gitignore
+| /
+path a
+path a/
+path a/b
+
+scenario edge/double-slash-pattern
+kind git-quirk
+spec A pattern consisting only of slashes is not described by gitignore(5).
+file .gitignore
+| //
+| ///
+path a
+path a/
+path a/b
+
+scenario edge/leading-double-slash
+kind git-quirk
+spec A leading slash anchors the pattern.
+note Two leading slashes are not collapsed.
+file .gitignore
+| //foo
+path foo
+path a/foo
+path foo/
+
+scenario edge/bang-alone
+kind git-quirk
+spec A lone exclamation mark negates an empty pattern.
+file .gitignore
+| *
+| !
+path a
+path b/c
+path a/
+
+scenario edge/bang-slash
+kind git-quirk
+spec A negated pattern consisting of a slash is not described by gitignore(5).
+file .gitignore
+| *
+| !/
+path a
+path a/
+
+scenario edge/slash-star-star
+kind normative
+spec A lone "/**" matches everything inside the directory of the ignore file.
+file .gitignore
+| /**
+path a
+path a/b
+path a/
+
+scenario edge/star-slash-star-star
+kind normative
+spec A trailing "/**" matches everything inside.
+file .gitignore
+| */**
+path a
+path a/
+path a/b
+path a/b/c
+path b/c
+
+scenario edge/double-star-slash-only
+kind git-quirk
+spec A leading "**" followed by a slash means match in all directories.
+file .gitignore
+| **/
+path a
+path a/
+path a/b
+path a/b/
+path a/b/c
+
+scenario edge/double-star-slash-double-star
+kind git-quirk
+spec A pattern made of "**/**" is not described by gitignore(5).
+file .gitignore
+| **/**
+path a
+path a/b
+path a/
+
+scenario edge/dot-and-dotdot-patterns
+kind git-quirk
+spec Patterns are compared literally.
+file .gitignore
+| .
+| ..
+| ...
+path .hidden
+path ...
+path a/...
+
+scenario edge/dot-directories-and-files
+kind normative
+spec A dot at the start of a name is an ordinary character for matching purposes.
+file .gitignore
+| *
+| !.gitignore
+| .*
+path .hidden
+path .gitignore
+path sub/.hidden
+path visible
+
+scenario edge/very-long-name
+kind normative
+spec Patterns and names have no special length limit in gitignore(5).
+file .gitignore
+| aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa*b
+path aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+path aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac
+
+scenario edge/many-stars-backtracking
+kind normative
+spec An asterisk matches anything except a slash, with any number of asterisks.
+file .gitignore
+| *a*a*a*a*a*a*a*a*b
+path aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac
+path aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+path aaaaaaaab
+path aaaaaaab
+
+scenario edge/deep-path
+kind normative
+spec A pattern without a slash matches at any level below the ignore file.
+file .gitignore
+| leaf
+| deep/**/end
+path a/b/c/d/e/f/g/h/i/j/leaf
+path a/b/c/d/e/f/g/h/i/j/leafy
+path deep/a/b/c/d/e/f/g/h/i/j/end
+path deep/a/b/c/d/e/f/g/h/i/j/ends
+
+scenario edge/ignored-parent-with-deep-negation-in-same-file
+kind normative
+spec It is not possible to re-include a file if a parent directory of that file is excluded.
+file .gitignore
+| a/
+| !a/b/
+| !a/b/c.txt
+path a/
+path a/b/
+path a/b/c.txt
+path x/a/b/c.txt
+
+scenario edge/later-negation-without-slash-covers-directories
+kind normative
+spec Within one file the last matching pattern decides, so a later negation without a slash re-includes both files and directories.
+file .gitignore
+| out/
+| !out
+path out
+path out/
+path a/out
+
+scenario edge/pattern-matching-gitdir-name
+kind normative
+spec A .git directory is not special to the pattern syntax.
+file .gitignore
+| .git
+| .gitmodules
+path .gitmodules
+path sub/.gitmodules
+path other
+
+scenario edge/escape-at-start-of-pattern
+kind normative
+spec A backslash before a character that needs no escaping stands for that character.
+file .gitignore
+| \a
+| \*b
+| \?c
+path a
+path *b
+path xb
+path ?c
+path xc
+
+scenario edge/bracket-with-slash
+kind git-quirk
+spec Wildcards in git match with the pathname flag, so a slash cannot be matched by a bracket expression.
+file .gitignore
+| a[/]b
+| c[a/]d
+path a/b
+path ab
+path c/d
+path cad
+
+scenario edge/empty-brackets
+kind git-quirk
+spec Behavior of an empty bracket expression is not described by gitignore(5).
+file .gitignore
+| a[]b
+| c[!]d
+| e[^]f
+path a[]b
+path ab
+path c[!]d
+path cd
+path e[^]f
+
+scenario edge/bracket-containing-star
+kind normative
+spec Special characters lose their meaning inside a bracket expression.
+file .gitignore
+| a[*?]b
+path a*b
+path a?b
+path acb
+path a[b
+
+scenario edge/escaped-bracket-closing-pair
+kind normative
+spec A backslash makes the following character ordinary.
+file .gitignore
+| a\[b\]c
+path a[b]c
+path abc
+path ab
+
+scenario edge/double-star-with-negation
+kind normative
+spec It is not possible to re-include a file if a parent directory of that file is excluded, even when the rule uses a leading "**".
+file .gitignore
+| **/node_modules/
+| !**/node_modules/keep/
+path node_modules/
+path a/node_modules/
+path node_modules/keep/
+path a/node_modules/keep/
+path node_modules/x/
+
+scenario edge/same-pattern-in-two-levels
+kind normative
+spec Patterns in lower level files override those in higher level files, including identical patterns.
+file .gitignore
+| !x
+file d/.gitignore
+| x
+file d/e/.gitignore
+| !x
+path x
+path d/x
+path d/e/x
+path d/e/f/x

@@ -1,0 +1,240 @@
+scenario lines/comment-line
+kind normative
+spec A line starting with # serves as a comment.
+file .gitignore
+| # *.log
+| #another
+| *.tmp
+path a.log
+path a.tmp
+path #another
+
+scenario lines/comment-not-at-start-is-pattern
+kind normative
+spec A hash that is not the first character is an ordinary character.
+file .gitignore
+| a #b
+| c#
+path a #b
+path a
+path c#
+path c
+
+scenario lines/leading-space-before-hash-is-pattern
+kind normative
+spec Only a hash in the first column starts a comment.
+file .gitignore
+| `s#x
+path `s#x
+path #x
+path x
+
+scenario lines/blank-lines
+kind normative
+spec A blank line matches no files, so it can serve as a separator for readability.
+file .gitignore
+|
+| *.log
+|
+|
+| !keep.log
+|
+path a.log
+path keep.log
+path a.txt
+
+scenario lines/whitespace-only-line
+kind normative
+spec A line that contains only spaces has no pattern once trailing spaces are removed.
+file .gitignore
+| `s`s`s
+| *.log
+path a.log
+path a.txt
+path `s`s`s
+
+scenario lines/trailing-spaces-ignored
+kind normative
+spec Trailing spaces are ignored unless they are quoted with backslash ("\").
+file .gitignore
+| foo`s`s`s
+| bar/`s
+| *.tmp`s
+path foo
+path foo`s`s`s
+path bar/
+path bar`s/
+path a.tmp
+path a.tmp`s
+
+scenario lines/escaped-trailing-space
+kind normative
+spec Trailing spaces are ignored unless they are quoted with backslash.
+file .gitignore
+| foo\`s
+| bar\`s`s
+path foo
+path foo`s
+path foo`s`s
+path bar`s
+path bar
+
+scenario lines/escaped-trailing-space-with-more
+kind git-quirk
+spec Trailing spaces are ignored unless they are quoted with backslash.
+note With several trailing spaces only the spaces after the last escaped one are removed.
+file .gitignore
+| a\`s`s`s
+| b`s\`s`s
+path a`s
+path a
+path b`s`s
+path b`s
+
+scenario lines/trailing-tab-is-not-trimmed
+kind git-quirk
+spec Only spaces are mentioned by gitignore(5) as trailing whitespace.
+file .gitignore
+| tabbed`t
+| plain`t`s
+path tabbed`t
+path tabbed
+path plain`t
+path plain
+
+scenario lines/no-final-newline
+kind normative
+spec The last line of a file is a pattern even without a terminating line feed.
+file .gitignore noeol
+| first
+| last
+path first
+path last
+path other
+
+scenario lines/final-newline-present
+kind normative
+spec A file that ends in a line feed has no extra empty pattern.
+file .gitignore
+| only
+path only
+path other
+
+scenario lines/crlf-line-endings
+kind git-quirk
+spec gitignore(5) does not describe line terminators.
+note Git removes a carriage return that precedes the line feed.
+file .gitignore
+| first`r
+| *.log`r
+| !keep.log`r
+| dir/`r
+path first
+path first`r
+path a.log
+path keep.log
+path dir/
+path dir
+
+scenario lines/crlf-with-trailing-space
+kind git-quirk
+spec gitignore(5) does not describe line terminators.
+note Git removes the carriage return first and then the trailing spaces before it.
+file .gitignore
+| foo`s`r
+| bar\`s`r
+path foo
+path foo`s
+path bar`s
+path bar
+
+scenario lines/crlf-without-final-newline
+kind git-quirk
+spec gitignore(5) does not describe line terminators.
+note A lone carriage return at the very end of the file is not followed by a line feed.
+file .gitignore noeol
+| first`r
+| last`r
+path first
+path last
+path last`r
+
+scenario lines/lone-carriage-return-inside-line
+kind git-quirk
+spec gitignore(5) does not describe line terminators.
+note A carriage return that is not directly before a line feed belongs to the pattern.
+file .gitignore
+| a`rb
+path a`rb
+path a
+path b
+
+scenario lines/bom-first-line
+kind git-quirk
+spec gitignore(5) does not describe byte order marks.
+note Git skips a UTF-8 byte order mark at the start of an ignore file.
+file .gitignore
+| `uFEFFfoo
+| bar
+path foo
+path bar
+path `uFEFFfoo
+
+scenario lines/bom-before-comment
+kind git-quirk
+spec gitignore(5) does not describe byte order marks.
+note Git skips the byte order mark before deciding whether the first line is a comment.
+file .gitignore
+| `uFEFF#comment
+| baz
+path #comment
+path comment
+path baz
+path `uFEFF#comment
+
+scenario lines/bom-before-negation
+kind git-quirk
+spec gitignore(5) does not describe byte order marks.
+note Git skips the byte order mark before reading the negation prefix.
+file .gitignore
+| `uFEFF!foo
+| bar
+path foo
+path bar
+
+scenario lines/bom-in-the-middle
+kind git-quirk
+spec gitignore(5) does not describe byte order marks.
+note Only a mark at the start of the file is skipped; elsewhere it is an ordinary character.
+file .gitignore
+| first
+| `uFEFFsecond
+path first
+path second
+path `uFEFFsecond
+
+scenario lines/bom-with-crlf
+kind git-quirk
+spec gitignore(5) does not describe byte order marks.
+file .gitignore
+| `uFEFFfoo`r
+| bar`r
+path foo
+path bar
+
+scenario lines/bom-in-nested-ignore-file
+kind git-quirk
+spec gitignore(5) does not describe byte order marks.
+file sub/.gitignore
+| `uFEFFfoo
+path sub/foo
+path foo
+
+scenario lines/empty-ignore-file
+kind normative
+spec An empty .gitignore matches nothing.
+file .gitignore noeol
+|
+path a
+path a/b
+path dir/

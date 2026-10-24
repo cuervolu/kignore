@@ -1,0 +1,93 @@
+scenario anchoring/no-slash-matches-any-level
+kind normative
+spec If there is no separator at the beginning or middle of the pattern, then the pattern may also match at any level below the .gitignore level.
+file .gitignore
+| foo
+path foo
+path a/foo
+path a/b/foo
+path foo/x
+path a/foo/x
+path foobar
+path xfoo
+path foo/
+
+scenario anchoring/leading-slash
+kind normative
+spec A leading slash anchors the pattern to the directory of the .gitignore file.
+file .gitignore
+| /foo
+path foo
+path foo/x
+path foo/
+path a/foo
+path a/foo/
+path a/b/foo
+
+scenario anchoring/middle-slash
+kind normative
+spec If there is a separator at the beginning or middle of the pattern, then the pattern is relative to the directory level of the particular .gitignore file itself.
+file .gitignore
+| doc/frotz
+| a/b/c
+path doc/frotz
+path a/doc/frotz
+path doc/frotz/x
+path a/b/c
+path x/a/b/c
+path a/b/c/d
+path doc
+
+scenario anchoring/leading-slash-with-wildcard
+kind normative
+spec A leading slash matches the beginning of the pathname. For example, "/*.c" matches "cat-file.c" but not "mozilla-sha1/sha1.c".
+file .gitignore
+| /*.c
+path cat-file.c
+path mozilla-sha1/sha1.c
+path a.c/
+path a.c/b
+
+scenario anchoring/middle-slash-with-trailing-star
+kind normative
+spec A pattern with a slash in the middle is anchored, even when it ends in a wildcard.
+file .gitignore
+| a/*
+path a/b
+path a/b/c
+path x/a/b
+path a
+
+scenario anchoring/trailing-slash-only-is-not-anchored
+kind normative
+spec The trailing slash is removed before the separator test, so "foo/" has no separator in the middle and matches at any level.
+file .gitignore
+| foo/
+path foo/
+path a/foo/
+path a/b/foo/
+path foo/x
+path a/foo/x
+path foo
+path a/foo
+
+scenario anchoring/middle-slash-and-trailing-slash
+kind normative
+spec A pattern with a slash in the middle is anchored; a trailing slash restricts it to directories.
+file .gitignore
+| a/b/
+path a/b/
+path a/b
+path a/b/c
+path x/a/b/
+path x/a/b/c
+
+scenario anchoring/dot-segments
+kind git-quirk
+spec Pattern text is compared literally against pathname components.
+note Patterns with "." segments are not described by gitignore(5); no normalized path matches them.
+file .gitignore
+| ./foo
+| bar/./baz
+path foo
+path bar/baz
