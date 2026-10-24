@@ -131,9 +131,60 @@ A new category must also be added to `requiredCategories` in `FixtureIntegrityTe
 not evidence of gitignore compatibility.
 
 `GitIgnoreConformanceTest` runs every scenario against a matcher and is the test that measures compatibility. It is
-ignored for now because no matcher exists. Enabling it is mandatory in the milestone that introduces the rule engine.
+ignored for now because there is no rule set yet, only single patterns. Enabling it is mandatory in the milestone that
+introduces the rule engine.
+
+`SingleRuleConformanceTest` checks the pattern matcher against the fixture cases that one pattern can answer without
+any precedence or inheritance logic. It is partial evidence and does not mean full compatibility. See the next section.
 
 `ConformanceHarnessTest` checks the harness with a subject that is wrong on purpose.
+
+## Pattern matcher status
+
+The second milestone added `IgnorePattern`, which compiles one gitignore line and answers whether that pattern alone
+covers a path. Rules that depend on several patterns, on parent directories or on several files belong to the rule set.
+
+`SingleRuleConformanceTest` reads every scenario that has one root `.gitignore`, no configuration override and no
+carriage return or byte order mark. For each case:
+
+- When Git answered `NONE`, no pattern of the file may match the path.
+- When Git answered `IGNORED` or `INCLUDED`, the pattern on the line that the fixture names is compared by itself, and
+  its negation must agree with the answer.
+- When that pattern does not match the path, the case stays pending. The fixture does not say whether Git matched the
+  path or one of its parent directories, and telling them apart needs inheritance.
+
+At the time of writing, 481 cases are verified, 43 cases are pending because the match may come from a parent
+directory, and 26 scenarios are pending as a whole. The test prints the pending cases when it runs.
+
+| Pending scenarios                                  | Reason                                                              | Milestone |
+|----------------------------------------------------|---------------------------------------------------------------------|-----------|
+| `case/ignorecase-*`, `unicode/precomposeunicode-*` | Git configuration overrides                                         | 3         |
+| `nested/*`, `edge/same-pattern-in-two-levels`      | Several ignore files, relative bases and precedence between files   | 3         |
+| `lines/crlf-*`, `lines/bom-*`, `lone-carriage-*`   | Splitting a file into lines, byte order marks and carriage returns  | 3         |
+
+Decisions about Git specific behavior, taken scenario by scenario. Every `git-quirk` scenario that a single pattern can
+answer is followed as Git does it.
+
+| Behavior                                                         | Decision                                                                     |
+|------------------------------------------------------------------|------------------------------------------------------------------------------|
+| `?` and bracket expressions consume one byte                     | Followed. Patterns and paths are compared as UTF-8 bytes.                    |
+| Unterminated bracket, unknown `[:class:]`, trailing backslash    | Reported as `Invalid`. Git never lets such a line match.                     |
+| Reversed range such as `[z-a]`                                   | Followed. Only the first character of the range is in the set.               |
+| Dash first or last, `]` first in a set                           | Followed. They are literal members.                                          |
+| A run of three or more stars forming a whole segment             | Followed. It acts as `**`, so `a/***/b` spans directories.                   |
+| `\/` in a pattern                                               | Followed. It separates segments like an unescaped slash.                     |
+| Trailing slash, then the separator test                          | Followed. Only the last slash is removed, so `foo//` never matches.          |
+| Lone `!`, `/` or `//`                                            | Reported as `Skipped`. They match nothing in Git either.                     |
+| Trailing tab, trailing spaces after an escaped space             | Followed. Only unescaped spaces at the very end are removed.                 |
+| CR before LF, byte order mark                                    | Not handled by `parse`, which takes one line. Left to the rule set.          |
+| Lone surrogate in a Kotlin string                                | Encoded as U+FFFD on every platform, which `encodeToByteArray` does not do.  |
+
+Path contract of `IgnorePattern.matches`: the path is relative, uses `/`, is already normalized and does not end in a
+slash. An empty path, an absolute path, a `.` or `..` segment, a repeated separator and a trailing separator match no
+pattern and never raise an error. The caller normalizes paths.
+
+Cost: a match takes at most about `pattern bytes * path bytes` steps plus one attempt for each pair of pattern segment
+and path segment, with no recursion. Neither input has to be small for the matcher to stay predictable.
 
 ## Limitations of the oracle
 
@@ -142,6 +193,7 @@ ignored for now because no matcher exists. Enabling it is mandatory in the miles
 - The answers come from `git check-ignore --no-index` with one path at a time. Behavior of directory walks, such as
   `git status` or `git add`, is not covered.
 - Paths that are not normalized, such as `a//b` or `./a`, are not part of the cases. Git cleans them before matching.
+  kignore does not clean them and treats them as matching nothing.
 - Names that the host filesystem cannot store faithfully, for example a name containing a backslash on Windows, make
   the generator abort. Generate fixtures on a POSIX host.
 - Case insensitive behavior is only covered through `core.ignorecase=true` and only for the file name part of the

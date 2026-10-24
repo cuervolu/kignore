@@ -7,6 +7,8 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
+
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_17 }
         // Development tool that asks Git for expected results. It is not part of the published library.
