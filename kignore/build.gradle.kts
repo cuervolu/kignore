@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.maven.publish)
     alias(libs.plugins.kotlin.allopen)
+    alias(libs.plugins.dokka)
     alias(libs.plugins.kotlinx.benchmark)
 }
 
@@ -41,6 +42,22 @@ kotlin {
 
         commonTest.dependencies {
             implementation(kotlin("test"))
+        }
+    }
+}
+
+// API reference, published to GitHub Pages. Only commonMain is documented, which gives one page per declaration
+// instead of one per target. The development source sets are not part of the library.
+dokka {
+    moduleName = "kignore"
+    dokkaSourceSets.configureEach {
+        if (name == "jvmBenchmark" || name == "jvmConformanceTool") suppress = true
+    }
+    dokkaSourceSets.named("commonMain") {
+        sourceLink {
+            localDirectory = file("src/commonMain/kotlin")
+            remoteUrl("https://github.com/cuervolu/kignore/blob/main/kignore/src/commonMain/kotlin")
+            remoteLineSuffix = "#L"
         }
     }
 }

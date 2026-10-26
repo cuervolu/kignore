@@ -21,7 +21,8 @@ kotlin {
 }
 ```
 
-In a JVM-only project, use the same coordinates in `dependencies`.
+In a JVM-only project, use the same coordinates in `dependencies`. The API reference is at
+[cuervolu.github.io/kignore](https://cuervolu.github.io/kignore/).
 
 ## Checking a path
 
@@ -131,3 +132,7 @@ Run Gradle from the repository root.
 The JavaScript and Wasm tests need a Chromium based browser, and `CHROME_BIN` can point to it. The tests never need Git. Git is only needed
 to regenerate or check the conformance fixtures, and to run the differential fuzzer, as explained in
 [conformance/README.md](conformance/README.md).
+
+To build the API reference locally, run `./gradlew --quiet --console=plain :kignore:dokkaGeneratePublicationHtml` and
+open `kignore/build/dokka/html/index.html`. Browsers block some scripts on `file://` pages, so for navigation to work
+serve the directory, for example with `python3 -m http.server --directory kignore/build/dokka/html`.

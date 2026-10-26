@@ -1,0 +1,51 @@
+name: Docs
+
+# The API reference is published to GitHub Pages from main. Pull requests never deploy.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'kignore/src/commonMain/**'
+      - 'kignore/build.gradle.kts'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6.4.0
+      - run: ./gradlew --quiet --console=plain :kignore:dokkaGeneratePublicationHtml
+      - uses: actions/configure-pages@v6.0.0
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: kignore/build/dokka/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1
