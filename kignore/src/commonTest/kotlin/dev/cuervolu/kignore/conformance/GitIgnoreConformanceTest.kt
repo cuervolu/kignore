@@ -87,6 +87,6 @@ class GitIgnoreConformanceTest {
         println(
             "conformance: ${Fixtures.scenarios.size} scenarios, $cases cases, ${deliberateDifferences.size} with deliberate differences",
         )
-        assertEquals(138, Fixtures.scenarios.size)
+        assertEquals(141, Fixtures.scenarios.size)
     }
 }

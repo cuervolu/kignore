@@ -261,3 +261,16 @@ file .gitignore
 | `sleading
 path `sleading
 path leading
+
+scenario characters/posix-class-needs-colon-before-first-closing-bracket
+kind git-quirk
+spec A bracket expression is a POSIX class only when a colon comes right before the first closing bracket after its opening, and otherwise the opening bracket is an ordinary member.
+note Found by the differential fuzzer. In `[[:a]:]` the set holds `[`, `:` and `a`, and the characters `:]` follow it.
+file .gitignore
+| [[:a]:]
+| [[:]x
+path a:]
+path [:]
+path a]
+path [x
+path ax

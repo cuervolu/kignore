@@ -135,3 +135,16 @@ file `u00E9t`u00E9/.gitignore
 path `u00E9t`u00E9/secret
 path secret
 path ete`u0301/secret
+
+scenario unicode/range-ends-at-first-byte-of-multibyte-character
+kind git-quirk
+spec Bracket expressions are read byte by byte, so a range written with a multibyte character ends at its first byte.
+note Found by the differential fuzzer. The set below is every byte from a to 0xC3, plus 0xA9, so it covers ASCII letters after a.
+file .gitignore
+| [a-`u00E9]
+path c
+path z
+path ~
+path A
+path 0
+path `u00E9

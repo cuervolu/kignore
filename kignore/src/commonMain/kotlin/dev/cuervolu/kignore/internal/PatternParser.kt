@@ -15,6 +15,7 @@ internal object PatternParser {
     fun parse(
         line: String,
         ignoreCase: Boolean = false,
+        counter: StepCounter? = null,
     ): PatternParseResult {
         if (line.startsWith('#')) return PatternParseResult.Skipped
         var start = 0
@@ -32,7 +33,7 @@ internal object PatternParser {
 
         val segments = ArrayList<GlobSegment>()
         if (!anchored) segments.add(GlobSegment.DOUBLE_STAR)
-        val problem = Tokenizer(line, start, end, segments, ignoreCase).run()
+        val problem = Tokenizer(line, start, end, segments, ignoreCase, counter).run()
         if (problem != null) return PatternParseResult.Invalid(problem)
         val pattern = IgnorePattern(line, negated, directoryOnly, CompiledGlob(segments.toTypedArray()))
         return PatternParseResult.Parsed(pattern)
@@ -69,6 +70,7 @@ internal object PatternParser {
         private val end: Int,
         private val segments: MutableList<GlobSegment>,
         private val ignoreCase: Boolean,
+        private val counter: StepCounter?,
     ) {
         private val segment = GlobSegment.Builder(ignoreCase)
 
@@ -102,7 +104,7 @@ internal object PatternParser {
                             index++
                         } else {
                             index++
-                            literalAtIndex()
+                            literalAtIndex(escaped = true)
                             continue
                         }
                     }
@@ -123,10 +125,32 @@ internal object PatternParser {
         }
 
         /** Adds the character at [index], which may be a surrogate pair, as UTF-8 literal bytes and moves past it. */
-        private fun literalAtIndex() {
+        private fun literalAtIndex(escaped: Boolean = false) {
             val codePoint = Utf8.codePointAt(line, index, end)
             index += if (codePoint > 0xFFFF) 2 else 1
+            // Git folds the pattern character before it looks at escapes, so an escaped upper case letter is left as
+            // written while the text is folded to lower case. It can never match anything.
+            if (escaped && ignoreCase && isUpper(codePoint)) {
+                segment.set(GlobSegment.newSet())
+                return
+            }
             Utf8.encode(codePoint) { segment.literal(it) }
+        }
+
+        /** Start of the last search for a `]` and what it found, so a run of `[:` does not scan the line again. */
+        private var closeFrom = -1
+        private var closeAt = -1
+
+        /**
+         * First `]` at or after [from], or -1. Searches move forward only, so all of them together read the line
+         * once, whatever the number of `[:` openings.
+         */
+        private fun nextClosingBracket(from: Int): Int {
+            if (closeFrom in 0..from && (closeAt < 0 || closeAt >= from)) return closeAt
+            closeFrom = from
+            closeAt = line.indexOf(']', from)
+            counter?.let { it.steps += (if (closeAt < 0) line.length else closeAt + 1) - from }
+            return closeAt
         }
 
         /** Parses the bracket expression starting at [index]. Leaves [index] after the closing bracket. */
@@ -146,12 +170,14 @@ internal object PatternParser {
                 }
                 first = false
                 if (c == '[' && i + 1 < end && line[i + 1] == ':') {
-                    val close = line.indexOf(":]", i + 2)
-                    if (close in 0 until end - 1) {
-                        if (!addPosixClass(bits, line.substring(i + 2, close))) {
+                    // Like Git, the class ends at the first `]` after the opening and only counts when a colon comes
+                    // right before it. Otherwise the `[` is an ordinary member, even if a `:]` follows further on.
+                    val close = nextClosingBracket(i + 2)
+                    if (close in i + 3 until end && line[close - 1] == ':') {
+                        if (!addPosixClass(bits, line.substring(i + 2, close - 1))) {
                             return PatternProblem(Reason.UNKNOWN_CHARACTER_CLASS, i)
                         }
-                        i = close + 2
+                        i = close + 1
                         continue
                     }
                 }
@@ -161,14 +187,16 @@ internal object PatternParser {
                 }
                 val codePoint = Utf8.codePointAt(line, i, end)
                 i += if (codePoint > 0xFFFF) 2 else 1
-                if (codePoint > 0x7F) {
-                    Utf8.encode(codePoint) { GlobSegment.addToSet(bits, it) }
-                    continue
+                // Git reads the set byte by byte. A character outside ASCII is several members, and a range starts at
+                // the last of its bytes.
+                var low = 0
+                Utf8.encode(codePoint) { byte ->
+                    // Git folds the text character to lower case and compares it with the members as written, so with
+                    // folding an upper case member never matches by itself. It only counts as the start of a range.
+                    if (!(ignoreCase && isUpper(byte))) GlobSegment.addToSet(bits, byte)
+                    low = byte
                 }
-                // Git folds the text character to lower case and compares it with the members as written, so with
-                // folding an upper case member never matches by itself. It only counts as the start of a range.
-                if (!(ignoreCase && isUpper(codePoint))) GlobSegment.addToSet(bits, codePoint)
-                // A dash between two single byte characters makes a range, unless it is the last member.
+                // A dash between two members makes a range, unless it is the last member.
                 if (i + 1 < end && line[i] == '-' && line[i + 1] != ']') {
                     var hi = i + 1
                     if (line[hi] == '\\') {
@@ -176,11 +204,23 @@ internal object PatternParser {
                         hi++
                     }
                     val high = Utf8.codePointAt(line, hi, end)
-                    if (high <= 0x7F) {
-                        // A reversed range keeps only its first character, like Git.
-                        for (b in codePoint..high) GlobSegment.addToSet(bits, b)
-                        i = hi + 1
+                    // The range ends at the first byte of the character. Its other bytes are ordinary members. A
+                    // reversed range keeps only its first character, like Git.
+                    var first = true
+                    Utf8.encode(high) { byte ->
+                        if (first) {
+                            for (b in low..byte) {
+                                GlobSegment.addToSet(
+                                    bits,
+                                    b,
+                                )
+                            }
+                        } else {
+                            GlobSegment.addToSet(bits, byte)
+                        }
+                        first = false
                     }
+                    i = hi + if (high > 0xFFFF) 2 else 1
                 }
             }
             // Folding comes before negation, so `[^a]` rejects both cases of the letter. A set that holds a letter

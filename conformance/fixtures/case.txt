@@ -140,3 +140,19 @@ path DOC/X => NONE
 path doc/X => NONE
 path Doc/a.tmp => IGNORED # .gitignore:2:Doc/*.tmp
 path doc/a.tmp => NONE
+
+scenario case/ignorecase-escaped-letters
+kind platform
+spec core.ignorecase folds the path, so an escaped upper case letter in a pattern never matches while an escaped lower case letter matches both cases.
+note Found by the differential fuzzer. Git folds the pattern before it reads the escape, so the escaped letter is compared as written.
+config core.ignorecase=true
+file .gitignore
+| A\B
+| c\d
+| E\f
+path ab => NONE
+path AB => NONE
+path cd => IGNORED # .gitignore:2:c\d
+path CD => IGNORED # .gitignore:2:c\d
+path ef => IGNORED # .gitignore:3:E\f
+path EF => IGNORED # .gitignore:3:E\f

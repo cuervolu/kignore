@@ -1,5 +1,6 @@
 package dev.cuervolu.kignore
 
+import dev.cuervolu.kignore.internal.PatternParser
 import dev.cuervolu.kignore.internal.StepCounter
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -106,5 +107,23 @@ class AdversarialInputTest {
         counter.steps = 0
         repeat(50) { pattern.glob.matches("a/a/a/aaaa", counter) }
         assertEquals(first * 50, counter.steps)
+    }
+
+    private fun parseSteps(line: String): Long {
+        val counter = StepCounter()
+        PatternParser.parse(line, counter = counter)
+        return counter.steps
+    }
+
+    @Test
+    fun runsOfPosixClassOpeningsAreScannedOnce() {
+        for (line in listOf(
+            "[" + "[:".repeat(20_000),
+            "[" + "[:a".repeat(20_000) + "]",
+            "[[:alpha:" + "[:".repeat(20_000),
+        )) {
+            // Reading the line once costs about its length, so a quadratic scan would exceed this by orders of magnitude.
+            assertTrue(parseSteps(line) <= 4L * line.length, "${parseSteps(line)} steps for ${line.length} characters")
+        }
     }
 }
