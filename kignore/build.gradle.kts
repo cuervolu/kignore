@@ -4,6 +4,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.maven.publish)
+    alias(libs.plugins.kotlin.allopen)
+    alias(libs.plugins.kotlinx.benchmark)
 }
 
 kotlin {
@@ -14,6 +16,8 @@ kotlin {
         // Development tool that asks Git for expected results. It is not part of the published library.
         val main = compilations.getByName("main")
         compilations.create("conformanceTool") { associateWith(main) }
+        // Measures the library. It is not part of the published artifact.
+        compilations.create("benchmark") { associateWith(main) }
     }
     js { browser() }
     @OptIn(ExperimentalWasmDsl::class)
@@ -24,6 +28,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+        }
+
+        getByName("jvmBenchmark").dependencies {
+            implementation(libs.kotlinx.benchmark.runtime)
         }
 
         commonTest.dependencies {
@@ -46,6 +54,54 @@ fun registerConformanceTask(
     mainClass = mainClassName
     workingDir = rootProject.projectDir
     args(toolArgs)
+}
+
+// JMH needs the benchmark classes to be open.
+allOpen {
+    annotation("org.openjdk.jmh.annotations.State")
+}
+
+benchmark {
+    targets {
+        register("jvmBenchmark")
+    }
+    configurations {
+        // The default profile, run with `benchmark`, is the one to quote results from.
+        named("main") {
+            warmups = 5
+            iterations = 10
+            iterationTime = 1
+            iterationTimeUnit = "s"
+            advanced("jvmForks", 3)
+        }
+        // Compares the two ways of walking a tree with a scope, which differ in how often a directory is evaluated.
+        register("scopeWalk") {
+            include("TreeBenchmark.incrementalWalk")
+            param("preset", "10k-20r-d8-x0", "10k-20r-d8-x50", "2k-20r-d30-x0")
+            warmups = 5
+            iterations = 10
+            iterationTime = 1
+            iterationTimeUnit = "s"
+            advanced("jvmForks", 3)
+        }
+        // A quick run that only shows the benchmarks still work.
+        register("smoke") {
+            warmups = 1
+            iterations = 2
+            iterationTime = 300
+            iterationTimeUnit = "ms"
+            advanced("jvmForks", 1)
+        }
+    }
+}
+
+val benchmarkCompilation = kotlin.jvm().compilations.getByName("benchmark")
+
+tasks.register<JavaExec>("measureAllocations") {
+    group = "benchmark"
+    description = "Prints the bytes allocated per operation, which does not vary from run to run like time does."
+    classpath(benchmarkCompilation.output.allOutputs, benchmarkCompilation.runtimeDependencyFiles)
+    mainClass = "dev.cuervolu.kignore.benchmark.AllocationReportKt"
 }
 
 registerConformanceTask(
