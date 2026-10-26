@@ -95,3 +95,48 @@ path foo => NONE
 path FOO => NONE
 path bar/ => IGNORED # .gitignore:2:/bar/
 path Bar/ => NONE
+
+scenario case/ignorecase-intermediate-segments
+kind platform
+spec core.ignorecase makes Git match patterns without regard to case.
+note Folding applies to every segment of the path below the ignore file, not only to the last one.
+config core.ignorecase=true
+file .gitignore
+| doc/x
+| Doc/*.tmp
+path doc/x => IGNORED # .gitignore:1:doc/x
+path DOC/X => IGNORED # .gitignore:1:doc/x
+path doc/X => IGNORED # .gitignore:1:doc/x
+path DOC/a.tmp => IGNORED # .gitignore:2:Doc/*.tmp
+path doc/a.TMP => IGNORED # .gitignore:2:Doc/*.tmp
+path other/doc/x => NONE
+
+scenario case/ignorecase-bracket-members
+kind platform
+spec core.ignorecase makes Git match patterns without regard to case.
+note Probes how folding interacts with an upper case member, a negated set and a range written in upper case.
+config core.ignorecase=true
+file .gitignore
+| [A]one
+| [^b]two
+| [X-Z]three
+path aone => NONE
+path Aone => NONE
+path atwo => IGNORED # .gitignore:2:[^b]two
+path Atwo => IGNORED # .gitignore:2:[^b]two
+path btwo => NONE
+path Btwo => NONE
+path ythree => IGNORED # .gitignore:3:[X-Z]three
+path Ythree => IGNORED # .gitignore:3:[X-Z]three
+
+scenario case/case-sensitive-intermediate-segments
+kind normative
+spec Patterns are case sensitive.
+file .gitignore
+| doc/x
+| Doc/*.tmp
+path doc/x => IGNORED # .gitignore:1:doc/x
+path DOC/X => NONE
+path doc/X => NONE
+path Doc/a.tmp => IGNORED # .gitignore:2:Doc/*.tmp
+path doc/a.tmp => NONE
