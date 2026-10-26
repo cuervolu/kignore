@@ -1,0 +1,113 @@
+name: Publish
+
+# Manual only. A dry run builds and checks the publications without uploading anything.
+# A real run waits for approval of the maven-central environment, then uploads a deployment
+# that still has to be released by hand in the Sonatype Central Portal.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish, which must match the Gradle project version
+        required: true
+        type: string
+      dry_run:
+        description: Build and verify only, without uploading
+        required: true
+        default: true
+        type: boolean
+
+permissions: {}
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+    outputs:
+      digest: ${{ steps.verify.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: Verify the commit and build the publications
+        id: verify
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: |
+          .github/scripts/verify-release.sh "$VERSION" "$RUNNER_TEMP/m2" > "$RUNNER_TEMP/digest.txt"
+          echo "digest=$(shasum -a 256 "$RUNNER_TEMP/digest.txt" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Summary
+        run: |
+          {
+            echo "### Verified $VERSION"
+            echo "Commit: \`$GITHUB_SHA\`"
+            echo "Digest of the artifacts: \`${{ steps.verify.outputs.digest }}\`"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/digest.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: verify
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: maven-central
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      # The job does not trust the previous one. It checks the commit, the version and the
+      # artifacts again and compares them with what the first job reported.
+      - name: Verify again before uploading
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+          EXPECTED_DIGEST: ${{ needs.verify.outputs.digest }}
+        run: |
+          .github/scripts/verify-release.sh "$VERSION" "$RUNNER_TEMP/m2" > "$RUNNER_TEMP/digest.txt"
+          actual=$(shasum -a 256 "$RUNNER_TEMP/digest.txt" | cut -d' ' -f1)
+          if [[ "$actual" != "$EXPECTED_DIGEST" ]]; then
+            echo "error: the artifacts differ from the ones verified earlier" >&2
+            exit 1
+          fi
+      - name: Upload to the Central Portal
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew --quiet --console=plain publishToMavenCentral --no-configuration-cache
+      - name: Summary
+        run: |
+          {
+            echo "### Uploaded $VERSION"
+            echo "Commit: \`$GITHUB_SHA\`"
+            echo "Release the deployment in the Central Portal, then tag this commit."
+          } >> "$GITHUB_STEP_SUMMARY"
