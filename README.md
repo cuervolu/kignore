@@ -115,9 +115,9 @@ comments.
 
 ## Compatibility
 
-Tests run on the JVM, macOS arm64, JavaScript (browser) and Wasm (browser). The `linuxX64` and `mingwX64` targets are
-compiled but their tests are not run. Behavior is checked against Git itself, as described in
-[conformance/README.md](conformance/README.md).
+Tests run on the JVM, macOS arm64, Linux x64, Windows x64, JavaScript (browser) and Wasm (browser). Behavior is checked
+against Git itself, as described in [conformance/README.md](conformance/README.md). Changes are listed in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Building and testing
 

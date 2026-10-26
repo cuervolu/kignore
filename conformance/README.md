@@ -21,7 +21,7 @@ what the cases mean. Git is only needed to regenerate or check fixtures, never t
 ```
 
 The browser targets need a Chromium based browser. Set `CHROME_BIN` if none is in the default location. The
-`linuxX64` and `mingwX64` targets are only compiled, since their tests cannot run on a macOS host.
+`linuxX64` and `mingwX64` tests run on Linux and Windows hosts, which CI provides, and are only compiled on macOS.
 
 ## Adding a case
 
