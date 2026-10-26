@@ -39,6 +39,9 @@ Use `commonTest` for platform-independent behavior.
 - Use Git as a reference oracle, but never require Git to execute multiplatform tests.
 - Test behavior rather than implementation details.
 - Add regression tests for every discovered matching bug.
+- Run `fuzzAgainstGit` after changing the parser or the matching engine. A divergence it reports becomes a scenario in `conformance/scenarios`, never an edited expectation. See `conformance/README.md`.
+- Measure before optimizing. `jvmBenchmarkBenchmark` and `measureAllocations` are development tools and are not part of `check`.
+- Run `checkKotlinAbi` after changing the public API, and `updateKotlinAbi` only when the change is intended.
 
 ## Kotlin conventions
 

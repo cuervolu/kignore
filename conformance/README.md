@@ -50,7 +50,7 @@ it goes beyond the manual, and `platform` when it depends on configuration such 
 
 ## Current status
 
-There are 138 scenarios and 649 cases: 95 normative, 35 git-quirk and 8 platform scenarios. All of them agree with Git
+There are 141 scenarios and 666 cases: 95 normative, 37 git-quirk and 9 platform scenarios. All of them agree with Git
 through both `IgnoreMatcher` and `IgnoreScope`, on the JVM, macOS arm64, JS and wasmJs. Nothing is pending, and kignore
 does not differ from Git on any case.
 
@@ -62,6 +62,35 @@ checks single patterns against the cases that one pattern can answer. Neither on
 
 Where kignore follows Git on details that gitignore(5) leaves open, the behavior is described in the KDoc of
 `IgnorePattern`, `IgnoreRuleSet.parse` and `IgnoreMatcher`, and is pinned by the scenarios themselves.
+
+## Differential fuzzing
+
+The scenarios are written by hand, so they only cover what someone thought of. `fuzzAgainstGit` generates random
+scenarios (trees, nested ignore files, wildcards, bracket expressions, escapes, negation, non-ASCII names and
+`core.ignorecase`), asks Git about every path and compares the answer with `IgnoreMatcher` and with an `IgnoreScope` walk.
+
+```shell
+./gradlew --quiet --console=plain fuzzAgainstGit --args='--seed 1 --count 5000'
+```
+
+A scenario is a function of the seed and its index, so `--seed 1 --from 4210 --count 1` reproduces one exactly. Other
+options are `--threads` and `--max-divergences`. At the end the tool reports how many cases a rule matched, how many
+different rule lines it produced and how many lines used each piece of syntax, so a run can be judged by its variety and
+not only by its size. It exits with a failure when it finds a difference.
+
+When kignore and Git disagree, the tool removes paths, files, lines and characters for as long as the difference
+remains and prints the smallest scenario in the format of `scenarios/`. Check what Git does, add the scenario to the
+right file with an honest `kind` and `spec`, fix kignore if it is the one that is wrong, regenerate the fixtures and
+update the scenario count in `GitIgnoreConformanceTest`. Never change an expectation to make a run pass.
+`--inject-fault drop-negation` makes kignore ignore every negated line on purpose, which shows that the tool notices and
+reduces a real difference.
+
+The fuzzer asks Git about all the paths of a scenario in one `git check-ignore` call, from a template repository, which
+is much faster than the one path at a time oracle that generates the fixtures. `verifyBatchOracle` runs both on every
+conformance scenario that fits in one tree and fails if their answers differ. Run it after touching the oracle code.
+Scenarios that the host cannot hold, for example names that differ only by case on a case insensitive volume, use the
+slow oracle or are skipped and counted. Names that start with a colon are never generated, because Git reads them as
+pathspecs.
 
 ## Limits of the oracle
 
