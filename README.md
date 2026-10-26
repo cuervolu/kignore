@@ -7,8 +7,21 @@ It does only the matching. It does not read files, walk directories or look for 
 the JVM, JavaScript, Wasm and native targets. Its answers are checked against a real Git by a conformance suite, which
 is described in [conformance/README.md](conformance/README.md).
 
-kignore is not on Maven Central yet. To try it, run `./gradlew :kignore:publishToMavenLocal` and add `mavenLocal()` to
-your repositories. The coordinates are `dev.cuervolu:kignore`.
+## Installation
+
+kignore is published to Maven Central. In a Kotlin Multiplatform project, add it to the common source set:
+
+```kotlin
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("dev.cuervolu:kignore:0.1.0")
+        }
+    }
+}
+```
+
+In a JVM-only project, use the same coordinates in `dependencies`.
 
 ## Checking a path
 
@@ -45,8 +58,13 @@ val matcher = IgnoreMatcher.of(
 )
 
 matcher.ignores("a.log")          // true
-matcher.ignores("docs/a.log")     // false, the closest file wins
+matcher.ignores("docs/a.log")     // false
 ```
+
+For `docs/a.log`, the rule in `docs` is the one that applies. A file deeper in the tree has the last word on the paths
+its rules match, and inside a file the last matching line wins. When nothing in the deeper file matches, the rules of
+the directories above still apply, so `docs/a.txt` is judged by the root file. A directory excluded by any file stays
+excluded, whatever the files below it say.
 
 ## Walking a directory tree
 
@@ -55,27 +73,19 @@ event. To scan a whole tree, use `IgnoreScope`. It evaluates each directory once
 for the entries inside it.
 
 ```kotlin
-fun walk(directory: File, scope: IgnoreScope, visit: (File) -> Unit) {
-    for (entry in directory.listFiles().orEmpty()) {
-        if (entry.isDirectory) {
-            val child = scope.enter(entry.name) {
-                val file = File(entry, ".gitignore")
-                if (file.isFile) IgnoreRuleSet.parse(file.readText(), origin = file.path) else IgnoreRuleSet.EMPTY
-            }
-            if (!child.isIgnored) walk(entry, child, visit)
-        } else if (!scope.ignores(entry.name)) {
-            visit(entry)
-        }
-    }
-}
+val root = IgnoreScope.root(IgnoreRuleSet.parse("*.log\nbuild/\n"))
 
-walk(File("."), IgnoreScope.root(IgnoreRuleSet.parse(File(".gitignore").readText())), ::println)
+root.ignores("main.kt")                                        // false
+val src = root.enter("src") { IgnoreRuleSet.parse("!debug.log") }
+src.ignores("debug.log")                                       // false
+src.ignores("app.log")                                         // true
+root.enter("build") { error("not called") }.isIgnored          // true
 ```
 
-A scope takes one name at a time, never a path, so no directory can be skipped by accident. Git does not read the ignore
-file of an excluded directory, and `enter` follows that. The function you pass to `enter` runs once, and only when the
-directory is not ignored, so excluded directories never have their ignore file read. You can also pass an
-`IgnoreRuleSet` directly, but it is dropped when the directory is ignored.
+The function passed to `enter` loads the ignore file of that directory. It runs once, and only when the directory is not
+ignored, so you never read a file Git would not read. Walking a tree is a loop that calls `enter` for each subdirectory
+and `ignores` for each file. You can also pass an `IgnoreRuleSet` directly, but it is dropped when the directory is
+ignored. A scope takes one name at a time, never a path, so no directory can be skipped by accident.
 
 ## Malformed lines
 
@@ -103,6 +113,12 @@ comments.
 - Rule sets, matchers and scopes are immutable and safe to share between threads.
 - `.git/info/exclude`, `core.excludesFile` and symbolic links are not part of the model.
 
+## Compatibility
+
+Tests run on the JVM, macOS arm64, JavaScript (browser) and Wasm (browser). The `linuxX64` and `mingwX64` targets are
+compiled but their tests are not run. Behavior is checked against Git itself, as described in
+[conformance/README.md](conformance/README.md).
+
 ## Building and testing
 
 Run Gradle from the repository root.
@@ -112,7 +128,6 @@ Run Gradle from the repository root.
 ./gradlew --quiet --console=plain spotlessCheck
 ```
 
-The JavaScript and Wasm tests need a Chromium based browser, and `CHROME_BIN` can point to it. The `linuxX64` and
-`mingwX64` targets are compiled but their tests do not run on every host. The tests never need Git. Git is only needed
+The JavaScript and Wasm tests need a Chromium based browser, and `CHROME_BIN` can point to it. The tests never need Git. Git is only needed
 to regenerate or check the conformance fixtures, and to run the differential fuzzer, as explained in
 [conformance/README.md](conformance/README.md).
