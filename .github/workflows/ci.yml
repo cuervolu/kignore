@@ -1,9 +1,22 @@
 name: CI
 
+# Only changes that can affect the build or the tests start a run. verify-release.sh uses the same list.
 on:
   push:
     branches: [main]
+    paths: &build_paths
+      - 'kignore/**'
+      - 'conformance/fixtures/**'
+      - 'conformance/scenarios/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - '.editorconfig'
+      - '.github/workflows/ci.yml'
   pull_request:
+    paths: *build_paths
   workflow_dispatch:
 
 permissions:

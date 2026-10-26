@@ -18,8 +18,15 @@ fail() {
 [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]] || fail "the checked out commit is not $GITHUB_SHA"
 [[ -z "$(git status --porcelain)" ]] || fail "the working tree is not clean"
 
-passed=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --status success --json conclusion --jq length)
-[[ "$passed" -ge 1 ]] || fail "CI has not succeeded for $GITHUB_SHA"
+# CI only runs for changes that can affect the build, so the commit may not have a run of its own.
+# Accept the latest successful run on main when nothing that CI watches changed since then.
+# Keep these pathspecs in sync with the paths in .github/workflows/ci.yml.
+tested=$(gh run list --workflow ci.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha // empty')
+[[ -n "$tested" ]] || fail "CI has not succeeded on main"
+changed=$(git diff --name-only "$tested" HEAD -- \
+  kignore conformance/fixtures conformance/scenarios gradle ':(glob)*.gradle.kts' \
+  gradle.properties gradlew gradlew.bat .editorconfig .github/workflows/ci.yml)
+[[ -z "$changed" ]] || fail "files changed since the last successful CI run $tested: $changed"
 
 ./gradlew --quiet --console=plain spotlessCheck checkKotlinAbi check >&2
 rm -rf "$repo"
