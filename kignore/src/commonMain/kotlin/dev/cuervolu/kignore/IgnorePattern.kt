@@ -2,6 +2,7 @@ package dev.cuervolu.kignore
 
 import dev.cuervolu.kignore.internal.CompiledGlob
 import dev.cuervolu.kignore.internal.PatternParser
+import dev.cuervolu.kignore.internal.StepCounter
 
 /**
  * One compiled line of a gitignore file.
@@ -44,6 +45,18 @@ public class IgnorePattern internal constructor(
         path: String,
         isDirectory: Boolean = false,
     ): Boolean = (isDirectory || !isDirectoryOnly) && glob.matches(path)
+
+    /**
+     * Same as [matches] for a path that is already encoded and known to be normalized, looking only at
+     * `path[from, to)`. Used by rule sets so a path is encoded once, however many patterns and ancestors it meets.
+     */
+    internal fun matchesEncoded(
+        path: ByteArray,
+        from: Int,
+        to: Int,
+        isDirectory: Boolean,
+        counter: StepCounter? = null,
+    ): Boolean = (isDirectory || !isDirectoryOnly) && glob.matches(path, from, to, counter)
 
     override fun toString(): String = "IgnorePattern($source)"
 

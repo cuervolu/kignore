@@ -3,6 +3,9 @@ package dev.cuervolu.kignore.internal
 /** Counts the work done by the matcher so tests can check the cost bounds without measuring time. */
 internal class StepCounter {
     var steps: Long = 0
+
+    /** Number of times a path string was turned into UTF-8 bytes. */
+    var encodings: Int = 0
 }
 
 /**
@@ -55,6 +58,14 @@ internal class GlobSegment private constructor(
                             }
                         }
 
+                        FOLDED -> {
+                            if (((path[index].toInt() and 0xFF) or CASE_BIT) == operands[token]) {
+                                token++
+                                index++
+                                continue
+                            }
+                        }
+
                         ANY -> {
                             token++
                             index++
@@ -82,7 +93,9 @@ internal class GlobSegment private constructor(
         }
     }
 
-    class Builder {
+    class Builder(
+        private val ignoreCase: Boolean = false,
+    ) {
         private var kinds = ByteArray(8)
         private var operands = IntArray(8)
         private var sets = ArrayList<LongArray>()
@@ -101,7 +114,10 @@ internal class GlobSegment private constructor(
 
         fun any() = other(ANY, 0)
 
-        fun literal(byte: Int) = other(LITERAL, byte)
+        /** With case folding a letter becomes a token that accepts both cases. Only ASCII letters fold, like Git. */
+        fun literal(byte: Int) {
+            if (ignoreCase && isAsciiLetter(byte)) other(FOLDED, byte or CASE_BIT) else other(LITERAL, byte)
+        }
 
         fun set(bits: LongArray) {
             sets.add(bits)
@@ -150,8 +166,23 @@ internal class GlobSegment private constructor(
         private const val ANY: Byte = 1
         private const val STAR: Byte = 2
         private const val CLASS: Byte = 3
+        private const val FOLDED: Byte = 4
+        private const val CASE_BIT = 0x20
 
         val DOUBLE_STAR = GlobSegment(true, ByteArray(0), IntArray(0), emptyArray())
+
+        private fun isAsciiLetter(byte: Int) = (byte or CASE_BIT) in 'a'.code..'z'.code
+
+        /** Adds the other case of every ASCII letter in [set], so the set accepts either case. */
+        fun foldSet(set: LongArray) {
+            for (letter in 'a'.code..'z'.code) {
+                val upper = letter xor CASE_BIT
+                if (setContains(set, letter) || setContains(set, upper)) {
+                    addToSet(set, letter)
+                    addToSet(set, upper)
+                }
+            }
+        }
 
         fun newSet(): LongArray = LongArray(4)
 

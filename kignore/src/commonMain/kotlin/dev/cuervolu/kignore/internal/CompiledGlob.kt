@@ -18,9 +18,24 @@ internal class CompiledGlob(
         counter: StepCounter? = null,
     ): Boolean {
         val bytes = Utf8.encode(path)
-        if (!isNormalized(bytes)) return false
-        return matchSegments(bytes, counter)
+        counter?.let { it.encodings++ }
+        if (!PathBytes.isNormalized(bytes, 0, bytes.size)) return false
+        return matchSegments(bytes, 0, bytes.size, counter)
     }
+
+    /**
+     * Matches the bytes `path[from, to)` of a path that is already encoded and known to be normalized.
+     *
+     * [from] must be the start of a segment, so a rule set based in a subdirectory can look at the part of the path
+     * below its base without copying it. [to] may end a prefix of the path, which is how ancestors are checked
+     * without encoding them again.
+     */
+    fun matches(
+        path: ByteArray,
+        from: Int,
+        to: Int,
+        counter: StepCounter? = null,
+    ): Boolean = matchSegments(path, from, to, counter)
 
     /**
      * Same scheme as [GlobSegment.matches], one level up: each pattern segment consumes exactly one path segment
@@ -29,12 +44,14 @@ internal class CompiledGlob(
      */
     private fun matchSegments(
         path: ByteArray,
+        from: Int,
+        to: Int,
         counter: StepCounter?,
     ): Boolean {
-        val n = path.size
+        val n = to
         val count = segments.size
         var pi = 0
-        var pos = 0
+        var pos = from
         var starPi = -1
         var starPos = 0
         while (true) {
@@ -51,7 +68,7 @@ internal class CompiledGlob(
                         advanced = true
                     }
                 } else if (pos < n) {
-                    val end = segmentEnd(path, pos, counter)
+                    val end = segmentEnd(path, pos, n, counter)
                     if (segment.matches(path, pos, end, counter)) {
                         pi++
                         pos = end + 1
@@ -63,7 +80,7 @@ internal class CompiledGlob(
             }
             if (advanced) continue
             if (starPi < 0 || starPos >= n) return false
-            starPos = segmentEnd(path, starPos, counter) + 1
+            starPos = segmentEnd(path, starPos, n, counter) + 1
             pos = starPos
             pi = starPi
         }
@@ -72,19 +89,28 @@ internal class CompiledGlob(
     private fun segmentEnd(
         path: ByteArray,
         from: Int,
+        limit: Int,
         counter: StepCounter?,
     ): Int {
         var end = from
-        while (end < path.size && path[end] != SLASH) end++
+        while (end < limit && path[end] != SLASH) end++
         if (counter != null) counter.steps += end - from + 1
         return end
     }
+}
 
-    private fun isNormalized(path: ByteArray): Boolean {
-        if (path.isEmpty()) return false
-        var segmentStart = 0
-        for (i in 0..path.size) {
-            if (i < path.size && path[i] != SLASH) continue
+/** Checks on encoded paths, shared by everything that accepts a path from the caller. */
+internal object PathBytes {
+    /** `true` for a non empty, relative path without empty, `.` or `..` segments in `path[from, to)`. */
+    fun isNormalized(
+        path: ByteArray,
+        from: Int,
+        to: Int,
+    ): Boolean {
+        if (to <= from) return false
+        var segmentStart = from
+        for (i in from..to) {
+            if (i < to && path[i] != SLASH) continue
             val length = i - segmentStart
             if (length == 0) return false
             if (length == 1 && path[segmentStart] == DOT) return false

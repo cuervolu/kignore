@@ -12,7 +12,10 @@ import dev.cuervolu.kignore.PatternProblem.Reason
  * Only ASCII characters are special, so the two views never disagree about where a special character is.
  */
 internal object PatternParser {
-    fun parse(line: String): PatternParseResult {
+    fun parse(
+        line: String,
+        ignoreCase: Boolean = false,
+    ): PatternParseResult {
         if (line.startsWith('#')) return PatternParseResult.Skipped
         var start = 0
         var end = trimmedEnd(line)
@@ -29,7 +32,7 @@ internal object PatternParser {
 
         val segments = ArrayList<GlobSegment>()
         if (!anchored) segments.add(GlobSegment.DOUBLE_STAR)
-        val problem = Tokenizer(line, start, end, segments).run()
+        val problem = Tokenizer(line, start, end, segments, ignoreCase).run()
         if (problem != null) return PatternParseResult.Invalid(problem)
         val pattern = IgnorePattern(line, negated, directoryOnly, CompiledGlob(segments.toTypedArray()))
         return PatternParseResult.Parsed(pattern)
@@ -65,8 +68,9 @@ internal object PatternParser {
         private var index: Int,
         private val end: Int,
         private val segments: MutableList<GlobSegment>,
+        private val ignoreCase: Boolean,
     ) {
-        private val segment = GlobSegment.Builder()
+        private val segment = GlobSegment.Builder(ignoreCase)
 
         /** Returns the first problem found or `null` when the whole range compiled. */
         fun run(): PatternProblem? {
@@ -161,7 +165,9 @@ internal object PatternParser {
                     Utf8.encode(codePoint) { GlobSegment.addToSet(bits, it) }
                     continue
                 }
-                GlobSegment.addToSet(bits, codePoint)
+                // Git folds the text character to lower case and compares it with the members as written, so with
+                // folding an upper case member never matches by itself. It only counts as the start of a range.
+                if (!(ignoreCase && isUpper(codePoint))) GlobSegment.addToSet(bits, codePoint)
                 // A dash between two single byte characters makes a range, unless it is the last member.
                 if (i + 1 < end && line[i] == '-' && line[i + 1] != ']') {
                     var hi = i + 1
@@ -177,6 +183,9 @@ internal object PatternParser {
                     }
                 }
             }
+            // Folding comes before negation, so `[^a]` rejects both cases of the letter. A set that holds a letter
+            // through a range or a class, or a lower case member, accepts both cases of it.
+            if (ignoreCase) GlobSegment.foldSet(bits)
             if (negate) {
                 for (w in bits.indices) bits[w] = bits[w].inv()
             }

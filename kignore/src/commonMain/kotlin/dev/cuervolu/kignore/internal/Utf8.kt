@@ -51,31 +51,43 @@ internal object Utf8 {
         }
     }
 
-    fun encode(text: String): ByteArray {
+    /** Number of bytes [encodeInto] writes for [text]. */
+    fun encodedLength(text: String): Int {
         var size = 0
         var i = 0
         while (i < text.length) {
             val codePoint = codePointAt(text, i)
             i += if (codePoint > 0xFFFF) 2 else 1
             size +=
-                if (codePoint < 0x80) {
-                    1
-                } else if (codePoint < 0x800) {
-                    2
-                } else if (codePoint < 0x10000) {
-                    3
-                } else {
-                    4
+                when {
+                    codePoint < 0x80 -> 1
+                    codePoint < 0x800 -> 2
+                    codePoint < 0x10000 -> 3
+                    else -> 4
                 }
         }
-        val bytes = ByteArray(size)
-        var out = 0
-        i = 0
+        return size
+    }
+
+    /** Writes the UTF-8 bytes of [text] into [out] starting at [offset] and returns the offset after them. */
+    fun encodeInto(
+        text: String,
+        out: ByteArray,
+        offset: Int,
+    ): Int {
+        var position = offset
+        var i = 0
         while (i < text.length) {
             val codePoint = codePointAt(text, i)
             i += if (codePoint > 0xFFFF) 2 else 1
-            encode(codePoint) { bytes[out++] = it.toByte() }
+            encode(codePoint) { out[position++] = it.toByte() }
         }
+        return position
+    }
+
+    fun encode(text: String): ByteArray {
+        val bytes = ByteArray(encodedLength(text))
+        encodeInto(text, bytes, 0)
         return bytes
     }
 }
