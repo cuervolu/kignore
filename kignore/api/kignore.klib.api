@@ -1,0 +1,151 @@
+// Klib ABI Dump
+// Targets: [js, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <kignore:kignore>
+final enum class dev.cuervolu.kignore/IgnoreDecision : kotlin/Enum<dev.cuervolu.kignore/IgnoreDecision> { // dev.cuervolu.kignore/IgnoreDecision|null[0]
+    enum entry IGNORED // dev.cuervolu.kignore/IgnoreDecision.IGNORED|null[0]
+    enum entry INCLUDED // dev.cuervolu.kignore/IgnoreDecision.INCLUDED|null[0]
+    enum entry NONE // dev.cuervolu.kignore/IgnoreDecision.NONE|null[0]
+
+    final val entries // dev.cuervolu.kignore/IgnoreDecision.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<dev.cuervolu.kignore/IgnoreDecision> // dev.cuervolu.kignore/IgnoreDecision.entries.<get-entries>|<get-entries>#static(){}[0]
+    final val isIgnored // dev.cuervolu.kignore/IgnoreDecision.isIgnored|{}isIgnored[0]
+        final fun <get-isIgnored>(): kotlin/Boolean // dev.cuervolu.kignore/IgnoreDecision.isIgnored.<get-isIgnored>|<get-isIgnored>(){}[0]
+
+    final fun valueOf(kotlin/String): dev.cuervolu.kignore/IgnoreDecision // dev.cuervolu.kignore/IgnoreDecision.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<dev.cuervolu.kignore/IgnoreDecision> // dev.cuervolu.kignore/IgnoreDecision.values|values#static(){}[0]
+}
+
+sealed interface dev.cuervolu.kignore/PatternParseResult { // dev.cuervolu.kignore/PatternParseResult|null[0]
+    open val patternOrNull // dev.cuervolu.kignore/PatternParseResult.patternOrNull|{}patternOrNull[0]
+        open fun <get-patternOrNull>(): dev.cuervolu.kignore/IgnorePattern? // dev.cuervolu.kignore/PatternParseResult.patternOrNull.<get-patternOrNull>|<get-patternOrNull>(){}[0]
+
+    final class Invalid : dev.cuervolu.kignore/PatternParseResult { // dev.cuervolu.kignore/PatternParseResult.Invalid|null[0]
+        final val problem // dev.cuervolu.kignore/PatternParseResult.Invalid.problem|{}problem[0]
+            final fun <get-problem>(): dev.cuervolu.kignore/PatternProblem // dev.cuervolu.kignore/PatternParseResult.Invalid.problem.<get-problem>|<get-problem>(){}[0]
+
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.cuervolu.kignore/PatternParseResult.Invalid.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.cuervolu.kignore/PatternParseResult.Invalid.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.cuervolu.kignore/PatternParseResult.Invalid.toString|toString(){}[0]
+    }
+
+    final class Parsed : dev.cuervolu.kignore/PatternParseResult { // dev.cuervolu.kignore/PatternParseResult.Parsed|null[0]
+        final val pattern // dev.cuervolu.kignore/PatternParseResult.Parsed.pattern|{}pattern[0]
+            final fun <get-pattern>(): dev.cuervolu.kignore/IgnorePattern // dev.cuervolu.kignore/PatternParseResult.Parsed.pattern.<get-pattern>|<get-pattern>(){}[0]
+
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.cuervolu.kignore/PatternParseResult.Parsed.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.cuervolu.kignore/PatternParseResult.Parsed.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.cuervolu.kignore/PatternParseResult.Parsed.toString|toString(){}[0]
+    }
+
+    final object Skipped : dev.cuervolu.kignore/PatternParseResult { // dev.cuervolu.kignore/PatternParseResult.Skipped|null[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.cuervolu.kignore/PatternParseResult.Skipped.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.cuervolu.kignore/PatternParseResult.Skipped.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.cuervolu.kignore/PatternParseResult.Skipped.toString|toString(){}[0]
+    }
+}
+
+final class dev.cuervolu.kignore/IgnoreDiagnostic { // dev.cuervolu.kignore/IgnoreDiagnostic|null[0]
+    final val line // dev.cuervolu.kignore/IgnoreDiagnostic.line|{}line[0]
+        final fun <get-line>(): kotlin/Int // dev.cuervolu.kignore/IgnoreDiagnostic.line.<get-line>|<get-line>(){}[0]
+    final val message // dev.cuervolu.kignore/IgnoreDiagnostic.message|{}message[0]
+        final fun <get-message>(): kotlin/String // dev.cuervolu.kignore/IgnoreDiagnostic.message.<get-message>|<get-message>(){}[0]
+    final val origin // dev.cuervolu.kignore/IgnoreDiagnostic.origin|{}origin[0]
+        final fun <get-origin>(): kotlin/String // dev.cuervolu.kignore/IgnoreDiagnostic.origin.<get-origin>|<get-origin>(){}[0]
+    final val problem // dev.cuervolu.kignore/IgnoreDiagnostic.problem|{}problem[0]
+        final fun <get-problem>(): dev.cuervolu.kignore/PatternProblem // dev.cuervolu.kignore/IgnoreDiagnostic.problem.<get-problem>|<get-problem>(){}[0]
+    final val text // dev.cuervolu.kignore/IgnoreDiagnostic.text|{}text[0]
+        final fun <get-text>(): kotlin/String // dev.cuervolu.kignore/IgnoreDiagnostic.text.<get-text>|<get-text>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.cuervolu.kignore/IgnoreDiagnostic.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.cuervolu.kignore/IgnoreDiagnostic.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.cuervolu.kignore/IgnoreDiagnostic.toString|toString(){}[0]
+}
+
+final class dev.cuervolu.kignore/IgnoreMatcher { // dev.cuervolu.kignore/IgnoreMatcher|null[0]
+    final fun decide(kotlin/String, kotlin/Boolean = ...): dev.cuervolu.kignore/IgnoreDecision // dev.cuervolu.kignore/IgnoreMatcher.decide|decide(kotlin.String;kotlin.Boolean){}[0]
+    final fun ignores(kotlin/String, kotlin/Boolean = ...): kotlin/Boolean // dev.cuervolu.kignore/IgnoreMatcher.ignores|ignores(kotlin.String;kotlin.Boolean){}[0]
+
+    final object Companion { // dev.cuervolu.kignore/IgnoreMatcher.Companion|null[0]
+        final fun of(dev.cuervolu.kignore/IgnoreRuleSet): dev.cuervolu.kignore/IgnoreMatcher // dev.cuervolu.kignore/IgnoreMatcher.Companion.of|of(dev.cuervolu.kignore.IgnoreRuleSet){}[0]
+        final fun of(kotlin.collections/Map<kotlin/String, dev.cuervolu.kignore/IgnoreRuleSet>): dev.cuervolu.kignore/IgnoreMatcher // dev.cuervolu.kignore/IgnoreMatcher.Companion.of|of(kotlin.collections.Map<kotlin.String,dev.cuervolu.kignore.IgnoreRuleSet>){}[0]
+    }
+}
+
+final class dev.cuervolu.kignore/IgnorePattern { // dev.cuervolu.kignore/IgnorePattern|null[0]
+    final val isDirectoryOnly // dev.cuervolu.kignore/IgnorePattern.isDirectoryOnly|{}isDirectoryOnly[0]
+        final fun <get-isDirectoryOnly>(): kotlin/Boolean // dev.cuervolu.kignore/IgnorePattern.isDirectoryOnly.<get-isDirectoryOnly>|<get-isDirectoryOnly>(){}[0]
+    final val isNegated // dev.cuervolu.kignore/IgnorePattern.isNegated|{}isNegated[0]
+        final fun <get-isNegated>(): kotlin/Boolean // dev.cuervolu.kignore/IgnorePattern.isNegated.<get-isNegated>|<get-isNegated>(){}[0]
+    final val source // dev.cuervolu.kignore/IgnorePattern.source|{}source[0]
+        final fun <get-source>(): kotlin/String // dev.cuervolu.kignore/IgnorePattern.source.<get-source>|<get-source>(){}[0]
+
+    final fun matches(kotlin/String, kotlin/Boolean = ...): kotlin/Boolean // dev.cuervolu.kignore/IgnorePattern.matches|matches(kotlin.String;kotlin.Boolean){}[0]
+    final fun toString(): kotlin/String // dev.cuervolu.kignore/IgnorePattern.toString|toString(){}[0]
+
+    final object Companion { // dev.cuervolu.kignore/IgnorePattern.Companion|null[0]
+        final fun parse(kotlin/String): dev.cuervolu.kignore/PatternParseResult // dev.cuervolu.kignore/IgnorePattern.Companion.parse|parse(kotlin.String){}[0]
+    }
+}
+
+final class dev.cuervolu.kignore/IgnoreRuleSet { // dev.cuervolu.kignore/IgnoreRuleSet|null[0]
+    final val diagnostics // dev.cuervolu.kignore/IgnoreRuleSet.diagnostics|{}diagnostics[0]
+        final fun <get-diagnostics>(): kotlin.collections/List<dev.cuervolu.kignore/IgnoreDiagnostic> // dev.cuervolu.kignore/IgnoreRuleSet.diagnostics.<get-diagnostics>|<get-diagnostics>(){}[0]
+    final val isEmpty // dev.cuervolu.kignore/IgnoreRuleSet.isEmpty|{}isEmpty[0]
+        final fun <get-isEmpty>(): kotlin/Boolean // dev.cuervolu.kignore/IgnoreRuleSet.isEmpty.<get-isEmpty>|<get-isEmpty>(){}[0]
+    final val patterns // dev.cuervolu.kignore/IgnoreRuleSet.patterns|{}patterns[0]
+        final fun <get-patterns>(): kotlin.collections/List<dev.cuervolu.kignore/IgnorePattern> // dev.cuervolu.kignore/IgnoreRuleSet.patterns.<get-patterns>|<get-patterns>(){}[0]
+
+    final fun toString(): kotlin/String // dev.cuervolu.kignore/IgnoreRuleSet.toString|toString(){}[0]
+
+    final object Companion { // dev.cuervolu.kignore/IgnoreRuleSet.Companion|null[0]
+        final val EMPTY // dev.cuervolu.kignore/IgnoreRuleSet.Companion.EMPTY|{}EMPTY[0]
+            final fun <get-EMPTY>(): dev.cuervolu.kignore/IgnoreRuleSet // dev.cuervolu.kignore/IgnoreRuleSet.Companion.EMPTY.<get-EMPTY>|<get-EMPTY>(){}[0]
+
+        final fun parse(kotlin/String, kotlin/String = ..., kotlin/Boolean = ...): dev.cuervolu.kignore/IgnoreRuleSet // dev.cuervolu.kignore/IgnoreRuleSet.Companion.parse|parse(kotlin.String;kotlin.String;kotlin.Boolean){}[0]
+    }
+}
+
+final class dev.cuervolu.kignore/IgnoreScope { // dev.cuervolu.kignore/IgnoreScope|null[0]
+    final val isIgnored // dev.cuervolu.kignore/IgnoreScope.isIgnored|{}isIgnored[0]
+        final fun <get-isIgnored>(): kotlin/Boolean // dev.cuervolu.kignore/IgnoreScope.isIgnored.<get-isIgnored>|<get-isIgnored>(){}[0]
+
+    final fun decide(kotlin/String, kotlin/Boolean = ...): dev.cuervolu.kignore/IgnoreDecision // dev.cuervolu.kignore/IgnoreScope.decide|decide(kotlin.String;kotlin.Boolean){}[0]
+    final fun enter(kotlin/String, dev.cuervolu.kignore/IgnoreRuleSet = ...): dev.cuervolu.kignore/IgnoreScope // dev.cuervolu.kignore/IgnoreScope.enter|enter(kotlin.String;dev.cuervolu.kignore.IgnoreRuleSet){}[0]
+    final fun enter(kotlin/String, kotlin/Function0<dev.cuervolu.kignore/IgnoreRuleSet>): dev.cuervolu.kignore/IgnoreScope // dev.cuervolu.kignore/IgnoreScope.enter|enter(kotlin.String;kotlin.Function0<dev.cuervolu.kignore.IgnoreRuleSet>){}[0]
+    final fun ignores(kotlin/String, kotlin/Boolean = ...): kotlin/Boolean // dev.cuervolu.kignore/IgnoreScope.ignores|ignores(kotlin.String;kotlin.Boolean){}[0]
+    final fun toString(): kotlin/String // dev.cuervolu.kignore/IgnoreScope.toString|toString(){}[0]
+
+    final object Companion { // dev.cuervolu.kignore/IgnoreScope.Companion|null[0]
+        final fun root(dev.cuervolu.kignore/IgnoreRuleSet = ...): dev.cuervolu.kignore/IgnoreScope // dev.cuervolu.kignore/IgnoreScope.Companion.root|root(dev.cuervolu.kignore.IgnoreRuleSet){}[0]
+    }
+}
+
+final class dev.cuervolu.kignore/PatternProblem { // dev.cuervolu.kignore/PatternProblem|null[0]
+    final val message // dev.cuervolu.kignore/PatternProblem.message|{}message[0]
+        final fun <get-message>(): kotlin/String // dev.cuervolu.kignore/PatternProblem.message.<get-message>|<get-message>(){}[0]
+    final val offset // dev.cuervolu.kignore/PatternProblem.offset|{}offset[0]
+        final fun <get-offset>(): kotlin/Int // dev.cuervolu.kignore/PatternProblem.offset.<get-offset>|<get-offset>(){}[0]
+    final val reason // dev.cuervolu.kignore/PatternProblem.reason|{}reason[0]
+        final fun <get-reason>(): dev.cuervolu.kignore/PatternProblem.Reason // dev.cuervolu.kignore/PatternProblem.reason.<get-reason>|<get-reason>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.cuervolu.kignore/PatternProblem.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.cuervolu.kignore/PatternProblem.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.cuervolu.kignore/PatternProblem.toString|toString(){}[0]
+
+    final enum class Reason : kotlin/Enum<dev.cuervolu.kignore/PatternProblem.Reason> { // dev.cuervolu.kignore/PatternProblem.Reason|null[0]
+        enum entry TRAILING_BACKSLASH // dev.cuervolu.kignore/PatternProblem.Reason.TRAILING_BACKSLASH|null[0]
+        enum entry UNKNOWN_CHARACTER_CLASS // dev.cuervolu.kignore/PatternProblem.Reason.UNKNOWN_CHARACTER_CLASS|null[0]
+        enum entry UNTERMINATED_BRACKET // dev.cuervolu.kignore/PatternProblem.Reason.UNTERMINATED_BRACKET|null[0]
+
+        final val entries // dev.cuervolu.kignore/PatternProblem.Reason.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<dev.cuervolu.kignore/PatternProblem.Reason> // dev.cuervolu.kignore/PatternProblem.Reason.entries.<get-entries>|<get-entries>#static(){}[0]
+
+        final fun valueOf(kotlin/String): dev.cuervolu.kignore/PatternProblem.Reason // dev.cuervolu.kignore/PatternProblem.Reason.valueOf|valueOf#static(kotlin.String){}[0]
+        final fun values(): kotlin/Array<dev.cuervolu.kignore/PatternProblem.Reason> // dev.cuervolu.kignore/PatternProblem.Reason.values|values#static(){}[0]
+    }
+}

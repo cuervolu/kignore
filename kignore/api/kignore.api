@@ -1,0 +1,130 @@
+public final class dev/cuervolu/kignore/IgnoreDecision : java/lang/Enum {
+	public static final field IGNORED Ldev/cuervolu/kignore/IgnoreDecision;
+	public static final field INCLUDED Ldev/cuervolu/kignore/IgnoreDecision;
+	public static final field NONE Ldev/cuervolu/kignore/IgnoreDecision;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun isIgnored ()Z
+	public static fun valueOf (Ljava/lang/String;)Ldev/cuervolu/kignore/IgnoreDecision;
+	public static fun values ()[Ldev/cuervolu/kignore/IgnoreDecision;
+}
+
+public final class dev/cuervolu/kignore/IgnoreDiagnostic {
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLine ()I
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getOrigin ()Ljava/lang/String;
+	public final fun getProblem ()Ldev/cuervolu/kignore/PatternProblem;
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/IgnoreMatcher {
+	public static final field Companion Ldev/cuervolu/kignore/IgnoreMatcher$Companion;
+	public final fun decide (Ljava/lang/String;Z)Ldev/cuervolu/kignore/IgnoreDecision;
+	public static synthetic fun decide$default (Ldev/cuervolu/kignore/IgnoreMatcher;Ljava/lang/String;ZILjava/lang/Object;)Ldev/cuervolu/kignore/IgnoreDecision;
+	public final fun ignores (Ljava/lang/String;Z)Z
+	public static synthetic fun ignores$default (Ldev/cuervolu/kignore/IgnoreMatcher;Ljava/lang/String;ZILjava/lang/Object;)Z
+}
+
+public final class dev/cuervolu/kignore/IgnoreMatcher$Companion {
+	public final fun of (Ldev/cuervolu/kignore/IgnoreRuleSet;)Ldev/cuervolu/kignore/IgnoreMatcher;
+	public final fun of (Ljava/util/Map;)Ldev/cuervolu/kignore/IgnoreMatcher;
+}
+
+public final class dev/cuervolu/kignore/IgnorePattern {
+	public static final field Companion Ldev/cuervolu/kignore/IgnorePattern$Companion;
+	public final fun getSource ()Ljava/lang/String;
+	public final fun isDirectoryOnly ()Z
+	public final fun isNegated ()Z
+	public final fun matches (Ljava/lang/String;Z)Z
+	public static synthetic fun matches$default (Ldev/cuervolu/kignore/IgnorePattern;Ljava/lang/String;ZILjava/lang/Object;)Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/IgnorePattern$Companion {
+	public final fun parse (Ljava/lang/String;)Ldev/cuervolu/kignore/PatternParseResult;
+}
+
+public final class dev/cuervolu/kignore/IgnoreRuleSet {
+	public static final field Companion Ldev/cuervolu/kignore/IgnoreRuleSet$Companion;
+	public final fun getDiagnostics ()Ljava/util/List;
+	public final fun getPatterns ()Ljava/util/List;
+	public final fun isEmpty ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/IgnoreRuleSet$Companion {
+	public final fun getEMPTY ()Ldev/cuervolu/kignore/IgnoreRuleSet;
+	public final fun parse (Ljava/lang/String;Ljava/lang/String;Z)Ldev/cuervolu/kignore/IgnoreRuleSet;
+	public static synthetic fun parse$default (Ldev/cuervolu/kignore/IgnoreRuleSet$Companion;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ldev/cuervolu/kignore/IgnoreRuleSet;
+}
+
+public final class dev/cuervolu/kignore/IgnoreScope {
+	public static final field Companion Ldev/cuervolu/kignore/IgnoreScope$Companion;
+	public final fun decide (Ljava/lang/String;Z)Ldev/cuervolu/kignore/IgnoreDecision;
+	public static synthetic fun decide$default (Ldev/cuervolu/kignore/IgnoreScope;Ljava/lang/String;ZILjava/lang/Object;)Ldev/cuervolu/kignore/IgnoreDecision;
+	public final fun enter (Ljava/lang/String;Ldev/cuervolu/kignore/IgnoreRuleSet;)Ldev/cuervolu/kignore/IgnoreScope;
+	public final fun enter (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Ldev/cuervolu/kignore/IgnoreScope;
+	public static synthetic fun enter$default (Ldev/cuervolu/kignore/IgnoreScope;Ljava/lang/String;Ldev/cuervolu/kignore/IgnoreRuleSet;ILjava/lang/Object;)Ldev/cuervolu/kignore/IgnoreScope;
+	public final fun ignores (Ljava/lang/String;Z)Z
+	public static synthetic fun ignores$default (Ldev/cuervolu/kignore/IgnoreScope;Ljava/lang/String;ZILjava/lang/Object;)Z
+	public final fun isIgnored ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/IgnoreScope$Companion {
+	public final fun root (Ldev/cuervolu/kignore/IgnoreRuleSet;)Ldev/cuervolu/kignore/IgnoreScope;
+	public static synthetic fun root$default (Ldev/cuervolu/kignore/IgnoreScope$Companion;Ldev/cuervolu/kignore/IgnoreRuleSet;ILjava/lang/Object;)Ldev/cuervolu/kignore/IgnoreScope;
+}
+
+public abstract interface class dev/cuervolu/kignore/PatternParseResult {
+	public fun getPatternOrNull ()Ldev/cuervolu/kignore/IgnorePattern;
+}
+
+public final class dev/cuervolu/kignore/PatternParseResult$DefaultImpls {
+	public static fun getPatternOrNull (Ldev/cuervolu/kignore/PatternParseResult;)Ldev/cuervolu/kignore/IgnorePattern;
+}
+
+public final class dev/cuervolu/kignore/PatternParseResult$Invalid : dev/cuervolu/kignore/PatternParseResult {
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getPatternOrNull ()Ldev/cuervolu/kignore/IgnorePattern;
+	public final fun getProblem ()Ldev/cuervolu/kignore/PatternProblem;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/PatternParseResult$Parsed : dev/cuervolu/kignore/PatternParseResult {
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPattern ()Ldev/cuervolu/kignore/IgnorePattern;
+	public fun getPatternOrNull ()Ldev/cuervolu/kignore/IgnorePattern;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/PatternParseResult$Skipped : dev/cuervolu/kignore/PatternParseResult {
+	public static final field INSTANCE Ldev/cuervolu/kignore/PatternParseResult$Skipped;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getPatternOrNull ()Ldev/cuervolu/kignore/IgnorePattern;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/PatternProblem {
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getOffset ()I
+	public final fun getReason ()Ldev/cuervolu/kignore/PatternProblem$Reason;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/cuervolu/kignore/PatternProblem$Reason : java/lang/Enum {
+	public static final field TRAILING_BACKSLASH Ldev/cuervolu/kignore/PatternProblem$Reason;
+	public static final field UNKNOWN_CHARACTER_CLASS Ldev/cuervolu/kignore/PatternProblem$Reason;
+	public static final field UNTERMINATED_BRACKET Ldev/cuervolu/kignore/PatternProblem$Reason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/cuervolu/kignore/PatternProblem$Reason;
+	public static fun values ()[Ldev/cuervolu/kignore/PatternProblem$Reason;
+}
+

@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -10,6 +11,10 @@ plugins {
 
 kotlin {
     explicitApi()
+
+    // Reports changes to the public API of the published targets. The DSL is still experimental in this Kotlin version.
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation()
 
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_17 }
