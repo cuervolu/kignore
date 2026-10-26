@@ -53,14 +53,27 @@ public class IgnoreScope private constructor(
      * to the subdirectory itself. When this directory is already ignored, the result is ignored too and [rules] are
      * dropped, because Git does not read ignore files inside an excluded directory.
      *
-     * The subdirectory is evaluated here, once. To skip an excluded directory without reading its ignore file, check
-     * [ignores] with `isDirectory = true` first and enter only when it is `false`. When the directory has no ignore
-     * file there is nothing to avoid reading, so `enter(name)` followed by [isIgnored] does the work with a single
-     * evaluation.
+     * The subdirectory is evaluated here, once. Checking [ignores] before entering evaluates it twice. When the ignore
+     * file has to be read from disk, prefer the overload that takes a function, which reads it only for directories
+     * that are walked.
      */
     public fun enter(
         name: String,
         rules: IgnoreRuleSet = IgnoreRuleSet.EMPTY,
+    ): IgnoreScope = enter(name, rules, null)
+
+    /**
+     * Same as [enter], for a directory whose ignore file is only worth reading when the directory can be walked.
+     *
+     * [rules] is called at most once, after [name] has been validated and the directory has been evaluated, and only
+     * if the directory is not ignored. It is not called when this scope or the directory is ignored, so the file is
+     * never read in that case. An exception thrown by [rules] propagates and leaves this scope unchanged.
+     *
+     * The directory is evaluated once, unlike a check with [ignores] followed by [enter].
+     */
+    public fun enter(
+        name: String,
+        rules: () -> IgnoreRuleSet,
     ): IgnoreScope = enter(name, rules, null)
 
     internal fun decide(
@@ -85,6 +98,16 @@ public class IgnoreScope private constructor(
         val ignored = RuleChain.decide(chain, path, path.size, true, counter) == IgnoreDecision.IGNORED
         if (ignored) return IGNORED_SCOPE
         return IgnoreScope(RuleChain.add(chain, rules, path.size), path, false)
+    }
+
+    internal fun enter(
+        name: String,
+        rules: () -> IgnoreRuleSet,
+        counter: StepCounter?,
+    ): IgnoreScope {
+        val child = enter(name, IgnoreRuleSet.EMPTY, counter)
+        if (child.isIgnored) return child
+        return IgnoreScope(RuleChain.add(child.chain, rules(), child.directory.size), child.directory, false)
     }
 
     private fun encodeEntry(

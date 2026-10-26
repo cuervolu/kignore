@@ -255,4 +255,110 @@ class IgnoreScopeTest {
         assertTrue(scope.ignores("a.log"))
         assertFalse(scope.ignores("a.txt"))
     }
+
+    // Deferred rules
+
+    @Test
+    fun deferredRulesAreNotReadInIgnoredDirectories() {
+        val root = IgnoreScope.root(rules("build/\n"))
+        var calls = 0
+        val build =
+            root.enter("build") {
+                calls++
+                rules("!x\n")
+            }
+        assertTrue(build.isIgnored)
+        assertTrue(
+            build
+                .enter("deeper") {
+                    calls++
+                    IgnoreRuleSet.EMPTY
+                }.isIgnored,
+        )
+        assertEquals(0, calls)
+    }
+
+    @Test
+    fun deferredRulesAreReadExactlyOnceInAllowedDirectories() {
+        val root = IgnoreScope.root(rules("*.log\n"))
+        var calls = 0
+        val src =
+            root.enter("src") {
+                calls++
+                rules("!keep.log\n")
+            }
+        assertEquals(1, calls)
+        assertFalse(src.isIgnored)
+        assertFalse(src.ignores("keep.log"))
+        assertTrue(src.ignores("a.log"))
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun deferredRulesGiveTheSameScopeAsPassingThemDirectly() {
+        val sets = tree.mapValues { rules(it.value) }
+        for (path in paths) {
+            for (isDirectory in listOf(false, true)) {
+                val names = path.split('/')
+                var scope = IgnoreScope.root(sets[""] ?: IgnoreRuleSet.EMPTY)
+                var directory = ""
+                for (name in names.dropLast(1)) {
+                    directory = if (directory.isEmpty()) name else "$directory/$name"
+                    scope = scope.enter(name) { sets[directory] ?: IgnoreRuleSet.EMPTY }
+                }
+                assertEquals(
+                    scopeDecision(sets, path, isDirectory),
+                    scope.decide(names.last(), isDirectory),
+                    "$path isDirectory=$isDirectory",
+                )
+            }
+        }
+    }
+
+    @Test
+    fun deferredEnteringEvaluatesTheDirectoryOnce() {
+        val root = IgnoreScope.root(rules((1..30).joinToString("\n") { "never$it/" }))
+        val direct = StepCounter()
+        root.enter("dir", IgnoreRuleSet.EMPTY, direct)
+        val deferred = StepCounter()
+        root.enter("dir", { IgnoreRuleSet.EMPTY }, deferred)
+        assertEquals(direct.steps, deferred.steps)
+        assertEquals(1, deferred.encodings)
+    }
+
+    @Test
+    fun errorsFromTheProviderPropagateAndLeaveTheScopeUsable() {
+        val root = IgnoreScope.root(rules("*.log\n"))
+        val failure = assertFailsWith<IllegalStateException> { root.enter("src") { error("unreadable") } }
+        assertEquals("unreadable", failure.message)
+        assertTrue(root.ignores("a.log"))
+        assertFalse(root.enter("src") { IgnoreRuleSet.EMPTY }.isIgnored)
+    }
+
+    @Test
+    fun invalidNamesAreRejectedBeforeTheProviderRuns() {
+        val root = IgnoreScope.root()
+        var calls = 0
+        for (name in listOf("", ".", "..", "a/b")) {
+            assertFailsWith<IllegalArgumentException> {
+                root.enter(name) {
+                    calls++
+                    IgnoreRuleSet.EMPTY
+                }
+            }
+        }
+        assertEquals(0, calls)
+    }
+
+    @Test
+    fun scopesBuiltWithDeferredRulesAreIndependent() {
+        val root = IgnoreScope.root(rules("*.log\n"))
+        val a = root.enter("a") { rules("!*.log\n") }
+        val b = root.enter("b") { rules("tmp\n") }
+        assertFalse(a.ignores("x.log"))
+        assertTrue(root.ignores("x.log"))
+        assertTrue(b.ignores("x.log"))
+        assertTrue(b.ignores("tmp"))
+        assertFalse(a.ignores("tmp"))
+    }
 }
