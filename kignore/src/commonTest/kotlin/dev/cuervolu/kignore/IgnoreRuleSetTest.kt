@@ -170,4 +170,52 @@ class IgnoreRuleSetTest {
         assertEquals(IgnoreDecision.IGNORED, decide(rules, "DOC/X"))
         assertEquals(IgnoreDecision.IGNORED, decide(rules, "Doc/x"))
     }
+
+    /** Tries to modify [list] through a cast. The cast or the change may fail, but neither may leave a trace. */
+    private fun <T> tryToModify(
+        list: List<T>,
+        change: (MutableList<T>) -> Unit,
+    ) {
+        try {
+            @Suppress("UNCHECKED_CAST")
+            change(list as MutableList<T>)
+        } catch (_: Throwable) {
+        }
+    }
+
+    @Test
+    fun noConsumerCanChangeWhatARuleSetReports() {
+        val rules = IgnoreRuleSet.parse("*.log\n[bad\n!keep.log\n")
+        val patterns = rules.patterns
+        val diagnostics = rules.diagnostics
+        val foreign = IgnoreRuleSet.parse("*.tmp").patterns[0]
+
+        tryToModify(patterns) { it.clear() }
+        tryToModify(patterns) { it.add(foreign) }
+        tryToModify(patterns) { it.removeAt(0) }
+        tryToModify(patterns) { it[0] = foreign }
+        tryToModify(patterns) { it.sortBy { pattern -> pattern.source } }
+        tryToModify(patterns) { it.subList(0, 1).clear() }
+        tryToModify(patterns) { it.listIterator().apply { next() }.remove() }
+        tryToModify(diagnostics) { it.clear() }
+        tryToModify(diagnostics) { it.removeAt(0) }
+
+        assertEquals(listOf("*.log", "!keep.log"), sources(rules))
+        assertEquals(1, rules.diagnostics.size)
+        assertEquals(2, patterns.size)
+        assertEquals(IgnoreDecision.IGNORED, decide(rules, "a.log"))
+        assertEquals(IgnoreDecision.INCLUDED, decide(rules, "keep.log"))
+        assertEquals(IgnoreDecision.NONE, decide(rules, "a.tmp"))
+        assertTrue(!rules.isEmpty)
+    }
+
+    @Test
+    fun theEmptyRuleSetStaysEmpty() {
+        val foreign = IgnoreRuleSet.parse("a").patterns[0]
+        tryToModify(IgnoreRuleSet.EMPTY.patterns) { it.add(foreign) }
+        tryToModify(IgnoreRuleSet.EMPTY.diagnostics) { it.clear() }
+        assertTrue(IgnoreRuleSet.EMPTY.patterns.isEmpty())
+        assertTrue(IgnoreRuleSet.EMPTY.diagnostics.isEmpty())
+        assertTrue(IgnoreRuleSet.EMPTY.isEmpty)
+    }
 }

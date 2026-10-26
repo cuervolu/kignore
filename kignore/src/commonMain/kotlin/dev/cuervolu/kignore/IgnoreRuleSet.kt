@@ -1,6 +1,7 @@
 package dev.cuervolu.kignore
 
 import dev.cuervolu.kignore.internal.PatternParser
+import dev.cuervolu.kignore.internal.ReadOnlyList
 import dev.cuervolu.kignore.internal.StepCounter
 
 /**
@@ -11,11 +12,18 @@ import dev.cuervolu.kignore.internal.StepCounter
  * directory that [IgnoreMatcher] or [IgnoreScope] associates it with.
  */
 public class IgnoreRuleSet private constructor(
-    /** The valid patterns of the file, in file order. Comments, blank lines and invalid lines are not here. */
-    public val patterns: List<IgnorePattern>,
-    /** One entry for each line that was left out because it is malformed, in file order. */
-    public val diagnostics: List<IgnoreDiagnostic>,
+    patterns: List<IgnorePattern>,
+    diagnostics: List<IgnoreDiagnostic>,
 ) {
+    /**
+     * The valid patterns of the file, in file order. Comments, blank lines and invalid lines are not here.
+     * The list cannot be modified, not even through a cast.
+     */
+    public val patterns: List<IgnorePattern> = ReadOnlyList.copyOf(patterns)
+
+    /** One entry for each line that was left out because it is malformed, in file order. */
+    public val diagnostics: List<IgnoreDiagnostic> = ReadOnlyList.copyOf(diagnostics)
+
     private val ordered: Array<IgnorePattern> = patterns.toTypedArray()
 
     /** `true` when the file holds no valid pattern. */
