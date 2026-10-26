@@ -133,12 +133,13 @@ registerConformanceTask(
 // https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-publish-libraries.html
 mavenPublishing {
     publishToMavenCentral()
-    coordinates("dev.cuervolu", "kignore", "1.0.0")
+    coordinates("dev.cuervolu", "kignore", "0.1.0")
 
     pom {
         name = "kignore"
-        description = "Kotlin Multiplatform library"
-        url = "github url" // todo
+        description = "Kotlin Multiplatform library that decides whether a path is ignored by .gitignore rules, " +
+            "checked against Git."
+        url = "https://github.com/cuervolu/kignore"
 
         licenses {
             license {
@@ -149,15 +150,19 @@ mavenPublishing {
 
         developers {
             developer {
-                id = "" // todo github nickname
-                name = "" // todo full name
-                email = "" // todo email
+                id = "cuervolu"
+                name = "Ángel Cuervo"
+                email = "contact@cuervolu.dev"
             }
         }
 
         scm {
-            url = "github url" // todo
+            url = "https://github.com/cuervolu/kignore"
+            connection = "scm:git:https://github.com/cuervolu/kignore.git"
+            developerConnection = "scm:git:ssh://git@github.com/cuervolu/kignore.git"
         }
     }
-    if (project.hasProperty("signing.keyId")) signAllPublications()
+
+    // Publishing to Maven Central needs a signature, while publishToMavenLocal works unsigned.
+    if (project.hasProperty("signingInMemoryKey") || project.hasProperty("signing.keyId")) signAllPublications()
 }
