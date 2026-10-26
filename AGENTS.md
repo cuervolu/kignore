@@ -49,13 +49,21 @@ Write clear, idiomatic Kotlin.
 - Avoid unnecessary allocations in performance-sensitive paths.
 - Do not introduce frameworks or abstractions without a concrete need.
 
-## Comments and documentation
+## Comments
 
 Comments should explain non-obvious behavior, constraints, and implementation decisions.
 
 Avoid redundant comments, emojis, em dashes, and artificial `term: description` writing patterns in documentation.
 
 Use clear, concise English.
+
+## Documentation
+
+Write documentation for human readers, not as implementation logs or agent handoff reports.
+
+Keep READMEs concise and focused on current behavior, usage, and maintenance. Avoid milestone histories, exhaustive decision tables, redundant technical explanations, and resolved TODOs.
+
+Document implementation details close to the relevant code or tests. Prefer clear, natural prose over mechanical summaries.
 
 ## Scope discipline
 
