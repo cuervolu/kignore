@@ -12,7 +12,8 @@ kotlin {
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_17 }
         // Development tool that asks Git for expected results. It is not part of the published library.
-        compilations.create("conformanceTool")
+        val main = compilations.getByName("main")
+        compilations.create("conformanceTool") { associateWith(main) }
     }
     js { browser() }
     @OptIn(ExperimentalWasmDsl::class)
@@ -36,14 +37,15 @@ val conformanceTool = kotlin.jvm().compilations.getByName("conformanceTool")
 fun registerConformanceTask(
     name: String,
     description: String,
-    vararg toolArgs: String,
+    mainClassName: String = "dev.cuervolu.kignore.conformance.tool.GenerateFixturesKt",
+    toolArgs: List<String> = emptyList(),
 ) = tasks.register<JavaExec>(name) {
     group = "conformance"
     this.description = description
     classpath(conformanceTool.output.allOutputs, conformanceTool.runtimeDependencyFiles)
-    mainClass = "dev.cuervolu.kignore.conformance.tool.GenerateFixturesKt"
+    mainClass = mainClassName
     workingDir = rootProject.projectDir
-    args(*toolArgs)
+    args(toolArgs)
 }
 
 registerConformanceTask(
@@ -53,7 +55,17 @@ registerConformanceTask(
 registerConformanceTask(
     "checkConformanceFixtures",
     "Fails if the committed conformance fixtures differ from what the local Git produces.",
-    "--check",
+    toolArgs = listOf("--check"),
+)
+registerConformanceTask(
+    "verifyBatchOracle",
+    "Fails if asking Git about all paths at once differs from asking about one path at a time.",
+    toolArgs = listOf("--verify-batch"),
+)
+registerConformanceTask(
+    "fuzzAgainstGit",
+    "Compares kignore with Git on generated scenarios. Pass options with --args, for example '--seed 1 --count 500'.",
+    mainClassName = "dev.cuervolu.kignore.conformance.tool.FuzzAgainstGitKt",
 )
 
 // Publishing your Kotlin Multiplatform library to Maven Central

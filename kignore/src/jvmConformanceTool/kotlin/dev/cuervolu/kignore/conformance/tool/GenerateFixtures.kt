@@ -26,45 +26,18 @@ private const val COMMAND = "git check-ignore --no-index -v -n -z --stdin"
 private val KINDS = setOf("normative", "git-quirk", "platform")
 private val RESULT_RULE_SEPARATOR = " # "
 
-private val DEFAULT_CONFIG =
-    linkedMapOf(
-        "core.ignorecase" to "false",
-        "core.precomposeunicode" to "false",
-        "core.quotepath" to "false",
-        "core.autocrlf" to "false",
-        "core.symlinks" to "false",
-    )
-
 private val ROOT: Path = Path.of("conformance")
 private val SCENARIOS: Path = ROOT.resolve("scenarios")
 private val FIXTURES: Path = ROOT.resolve("fixtures")
 private val EMBEDDED: Path =
     Path.of("kignore/src/commonTest/kotlin/dev/cuervolu/kignore/conformance/ConformanceData.kt")
 
-private data class FileSpec(
-    val path: String,
-    val content: String,
-    val noEol: Boolean,
-)
-
-private data class CheckSpec(
-    val path: String,
-    val result: String?,
-    val rule: String?,
-)
-
-private data class Scenario(
-    val id: String,
-    val kind: String,
-    val spec: String,
-    val note: String?,
-    val config: Map<String, String>,
-    val files: List<FileSpec>,
-    val checks: List<CheckSpec>,
-)
-
 fun main(args: Array<String>) {
     val check = args.firstOrNull() == "--check"
+    if (args.firstOrNull() == "--verify-batch") {
+        verifyBatch()
+        return
+    }
     check(Files.isDirectory(SCENARIOS)) { "Run from the repository root, missing $SCENARIOS" }
     val gitVersion = runGit(listOf("git", "--version"), null, emptyMap(), null).trim()
     val sources = SCENARIOS.listDirectoryEntries("*.txt").sorted()
@@ -234,127 +207,6 @@ private fun finish(
     return Scenario(id, kind, spec, note, config, files, checks)
 }
 
-// Escapes shared with the Kotlin fixture parser, introduced by a backtick: `` `n `r `t `s `uXXXX `u{X...}
-// The backtick is used instead of the backslash so gitignore escapes can be written as they are.
-
-private fun unescape(s: String): String {
-    val b = StringBuilder()
-    var i = 0
-    while (i < s.length) {
-        val c = s[i]
-        if (c != '`') {
-            b.append(c)
-            i++
-            continue
-        }
-        when (val e = s[++i]) {
-            '`' -> {
-                b.append('`')
-            }
-
-            'n' -> {
-                b.append('\n')
-            }
-
-            'r' -> {
-                b.append('\r')
-            }
-
-            't' -> {
-                b.append('\t')
-            }
-
-            's' -> {
-                b.append(' ')
-            }
-
-            'u' -> {
-                if (s[i + 1] == '{') {
-                    val end = s.indexOf('}', i)
-                    b.appendCodePoint(s.substring(i + 2, end).toInt(16))
-                    i = end
-                } else {
-                    b.append(s.substring(i + 1, i + 5).toInt(16).toChar())
-                    i += 4
-                }
-            }
-
-            else -> {
-                error("Unknown escape `$e in $s")
-            }
-        }
-        i++
-    }
-    return b.toString()
-}
-
-/** Escapes what is invisible or ambiguous so the text files stay readable and stable under editors. */
-private fun escape(
-    s: String,
-    escapeSpaces: Boolean,
-    escapeTrailingSpace: Boolean,
-): String {
-    val b = StringBuilder()
-    var trailingStart = s.length
-    while (trailingStart > 0 && (s[trailingStart - 1] == ' ' || s[trailingStart - 1] == '\t')) trailingStart--
-    var i = 0
-    while (i < s.length) {
-        val cp = s.codePointAt(i)
-        when {
-            cp == '`'.code -> {
-                b.append("``")
-            }
-
-            cp == '\n'.code -> {
-                b.append("`n")
-            }
-
-            cp == '\r'.code -> {
-                b.append("`r")
-            }
-
-            cp == '\t'.code -> {
-                b.append("`t")
-            }
-
-            cp == ' '.code && (escapeSpaces || (escapeTrailingSpace && i >= trailingStart)) -> {
-                b.append("`s")
-            }
-
-            cp == ' '.code -> {
-                b.append(' ')
-            }
-
-            isInvisible(cp) -> {
-                if (cp <= 0xFFFF) b.append("`u%04X".format(cp)) else b.append("`u{%X}".format(cp))
-            }
-
-            else -> {
-                b.appendCodePoint(cp)
-            }
-        }
-        i += Character.charCount(cp)
-    }
-    return b.toString()
-}
-
-private val INVISIBLE_TYPES =
-    setOf(
-        Character.CONTROL,
-        Character.FORMAT,
-        Character.NON_SPACING_MARK,
-        Character.ENCLOSING_MARK,
-        Character.COMBINING_SPACING_MARK,
-        Character.SPACE_SEPARATOR,
-        Character.LINE_SEPARATOR,
-        Character.PARAGRAPH_SEPARATOR,
-        Character.UNASSIGNED,
-        Character.PRIVATE_USE,
-        Character.SURROGATE,
-    ).map { it.toInt() }.toSet()
-
-private fun isInvisible(cp: Int): Boolean = cp < 0x20 || cp == 0x7F || Character.getType(cp) in INVISIBLE_TYPES
-
 // Writing
 
 private fun write(
@@ -400,169 +252,6 @@ private fun appendContent(
     for (line in lines) {
         val escaped = escape(line, false, true)
         out.append(if (escaped.isEmpty()) "|" else "| $escaped").append('\n')
-    }
-}
-
-// Oracle
-
-private object OracleRun {
-    fun resolve(sc: Scenario): Scenario {
-        val tmp = Files.createTempDirectory("kignore-oracle")
-        try {
-            val emptyConfig = tmp.resolve("empty.gitconfig").also { it.writeText("") }
-            val emptyExcludes = tmp.resolve("empty.excludes").also { it.writeText("") }
-            val emptyTemplate = Files.createDirectory(tmp.resolve("template"))
-            val home = Files.createDirectory(tmp.resolve("home"))
-            val repo = Files.createDirectory(tmp.resolve("repo"))
-            val env =
-                linkedMapOf(
-                    "GIT_CONFIG_GLOBAL" to emptyConfig.toString(),
-                    "GIT_CONFIG_SYSTEM" to emptyConfig.toString(),
-                    "GIT_CONFIG_NOSYSTEM" to "1",
-                    "HOME" to home.toString(),
-                    "USERPROFILE" to home.toString(),
-                    "XDG_CONFIG_HOME" to home.toString(),
-                )
-
-            runGit(listOf("git", "init", "-q", "--template=$emptyTemplate"), repo, env, null)
-            val config = LinkedHashMap(DEFAULT_CONFIG)
-            config["core.excludesFile"] = emptyExcludes.toString()
-            config.putAll(sc.config)
-            for ((k, v) in config) runGit(listOf("git", "config", "--local", k, v), repo, env, null)
-
-            for (f in sc.files) {
-                val target = repo.resolve(f.path)
-                check(!target.exists()) { "${sc.id}: host filesystem collision writing ${f.path}" }
-                target.parent.createDirectories()
-                Files.write(target, f.content.toByteArray(Charsets.UTF_8))
-            }
-            val base = names(repo)
-            check(base == prefixes(sc.files.map { it.path })) {
-                "${sc.id}: host filesystem altered file names, found $base"
-            }
-
-            // Git decides whether a path is a directory by looking at the filesystem, and a trailing slash in the
-            // argument is not enough for negated or directory-only rules; it can even make "*" match the empty
-            // remainder. The slash is therefore removed from the argument. Each path is therefore materialized on its
-            // own (directory when it ends in a slash, empty file otherwise), which also keeps names that differ only
-            // by case or normalization from colliding on case-insensitive hosts.
-            val resolved =
-                sc.checks.map { c ->
-                    val leaf = c.path.removeSuffix("/")
-                    val target = repo.resolve(leaf)
-                    if (c.path.endsWith("/")) {
-                        check(
-                            !target.exists() || Files.isDirectory(target),
-                        ) { "${sc.id}: '${c.path}' is a file in the scenario" }
-                        target.createDirectories()
-                    } else {
-                        check(!target.exists() || !Files.isDirectory(target)) {
-                            "${sc.id}: '${c.path}' needs a trailing slash, it is a directory in the scenario"
-                        }
-                        target.parent.createDirectories()
-                        if (!target.exists()) Files.write(target, ByteArray(0))
-                    }
-                    try {
-                        val expected = prefixes(sc.files.map { it.path } + leaf)
-                        val found = names(repo)
-                        check(found == expected) {
-                            "${sc.id}: host filesystem altered names for '${c.path}', expected $expected but found $found"
-                        }
-                        // Each record is source NUL line NUL pattern NUL path NUL, with empty fields for no match.
-                        val output =
-                            runGit(
-                                listOf("git", "check-ignore", "--no-index", "-v", "-n", "-z", "--stdin"),
-                                repo,
-                                env,
-                                leaf + "\u0000",
-                                allowOne = true,
-                            )
-                        val fields = output.split("\u0000")
-                        check(fields.size == 5) {
-                            "${sc.id}: unexpected check-ignore output ${output.replace('\u0000', '|')}"
-                        }
-                        check(fields[3] == leaf) { "${sc.id}: Git answered for '${fields[3]}' instead of '$leaf'" }
-                        if (fields[0].isEmpty()) {
-                            CheckSpec(c.path, "NONE", null)
-                        } else {
-                            val result = if (fields[2].startsWith("!")) "INCLUDED" else "IGNORED"
-                            CheckSpec(c.path, result, "${fields[0]}:${fields[1]}:${fields[2]}")
-                        }
-                    } finally {
-                        removeNewEntries(repo, base)
-                    }
-                }
-            return sc.copy(checks = resolved)
-        } finally {
-            deleteTree(tmp)
-        }
-    }
-}
-
-private fun names(repo: Path): Set<String> =
-    Files.walk(repo).use { walk ->
-        walk
-            .map { entry -> repo.relativize(entry).joinToString("/") { it.toString() } }
-            .filter { it.isNotEmpty() && it != ".git" && !it.startsWith(".git/") }
-            .toList()
-            .toSortedSet()
-    }
-
-private fun prefixes(paths: List<String>): Set<String> =
-    paths
-        .flatMap { path ->
-            val parts = path.split("/")
-            parts.indices.map { parts.take(it + 1).joinToString("/") }
-        }.toSortedSet()
-
-private fun removeNewEntries(
-    repo: Path,
-    keep: Set<String>,
-) {
-    val extra = names(repo) - keep
-    for (name in extra.sortedDescending()) Files.deleteIfExists(repo.resolve(name))
-}
-
-private fun runGit(
-    cmd: List<String>,
-    dir: Path?,
-    env: Map<String, String>,
-    stdin: String?,
-    allowOne: Boolean = false,
-): String {
-    val pb = ProcessBuilder(cmd)
-    if (dir != null) pb.directory(dir.toFile())
-    val pbEnv = pb.environment()
-    val path = pbEnv["PATH"] ?: pbEnv["Path"] ?: ""
-    val systemRoot = pbEnv["SystemRoot"]
-    pbEnv.clear()
-    pbEnv["PATH"] = path
-    if (systemRoot != null) pbEnv["SystemRoot"] = systemRoot
-    pbEnv["LC_ALL"] = "C"
-    pbEnv.putAll(env)
-    val err = Files.createTempFile("kignore-git-stderr", ".txt")
-    try {
-        pb.redirectError(err.toFile())
-        val process = pb.start()
-        process.outputStream.use { os -> if (stdin != null) os.write(stdin.toByteArray(Charsets.UTF_8)) }
-        val out = String(process.inputStream.readAllBytes(), Charsets.UTF_8)
-        val code = process.waitFor()
-        // check-ignore exits 1 when nothing matched, which is a valid answer.
-        check(code == 0 || (allowOne && code == 1)) {
-            "${cmd.joinToString(" ")} failed with $code: ${err.readText()}"
-        }
-        return out
-    } finally {
-        Files.deleteIfExists(err)
-    }
-}
-
-private fun deleteTree(root: Path) {
-    Files.walk(root).use { walk ->
-        for (p in walk.sorted(Comparator.reverseOrder()).toList()) {
-            p.toFile().setWritable(true)
-            Files.deleteIfExists(p)
-        }
     }
 }
 
@@ -621,3 +310,31 @@ private fun checkAgainstDisk(generated: Map<String, String>) {
 }
 
 private fun withoutGitLine(s: String): String = s.replace(Regex("(?m)^(# git: |        \"# git: ).*$"), "")
+
+/** Shows that asking Git about all the paths of a scenario at once gives the answers of the one path at a time oracle. */
+private fun verifyBatch() {
+    var scenarios = 0
+    var cases = 0
+    var skipped = 0
+    val different = ArrayList<String>()
+    for (source in SCENARIOS.listDirectoryEntries("*.txt").sorted()) {
+        for (scenario in parse(source.readText(), source.toString())) {
+            if (!OracleRun.canBatch(scenario)) {
+                skipped++
+                continue
+            }
+            val single = OracleRun.resolve(scenario).checks
+            val batch = OracleRun.resolveBatch(scenario).checks
+            scenarios++
+            cases += single.size
+            if (single != batch) different.add(scenario.id)
+        }
+    }
+    if (different.isNotEmpty()) {
+        System.err.println("Batch answers differ from the single path oracle in:\n  " + different.joinToString("\n  "))
+        exitProcess(1)
+    }
+    println(
+        "Batch and single path answers are identical for $scenarios scenarios, $cases cases ($skipped skipped, not representable in one tree)",
+    )
+}
