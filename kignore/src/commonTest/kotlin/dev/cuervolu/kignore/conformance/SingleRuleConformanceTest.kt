@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
  * Compares the pattern matcher with Git on the fixture cases that one pattern can answer by itself.
  *
  * It contains no precedence, inheritance or re-inclusion logic. Anything that needs it is reported as pending and is
- * left to the rule set of the next milestone, which will run every scenario through `GitIgnoreConformanceTest`.
+ * covered by `GitIgnoreConformanceTest`, which runs every scenario through the rule sets.
  *
  * A scenario is compared only when it has one ignore file named `.gitignore` at the root, no Git configuration
  * override, and no carriage return or byte order mark (file level concerns that belong to the rule set). For each of
@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
  * - Git answered `IGNORED` or `INCLUDED` and that pattern does not match the path: the case is pending. The fixture
  *   does not say whether Git matched the path itself or one of its parent directories, so a miss cannot be told
  *   apart from a legitimate parent match without implementing inheritance. Missed matches of the pattern itself are
- *   covered by the unit tests and by the differential test.
+ *   covered by the unit tests, by `DifferentialMatcherTest` and by the fuzzer described in `conformance/README.md`.
  */
 class SingleRuleConformanceTest {
     private companion object {

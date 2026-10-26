@@ -1,6 +1,10 @@
 package dev.cuervolu.kignore
 
-/** Outcome of [IgnorePattern.parse]. Handle it with an exhaustive `when`. */
+/**
+ * Outcome of [IgnorePattern.parse]. Handle it with an exhaustive `when`.
+ *
+ * The set of cases is closed. Under semantic versioning, adding or removing one is a breaking change.
+ */
 public sealed interface PatternParseResult {
     /** The line is a valid pattern. */
     public class Parsed internal constructor(

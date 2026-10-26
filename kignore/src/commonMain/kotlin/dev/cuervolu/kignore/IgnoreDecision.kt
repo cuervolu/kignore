@@ -5,6 +5,8 @@ package dev.cuervolu.kignore
  *
  * The decision is always the effective one. A path below an excluded directory is [IGNORED] even when a negated rule
  * matches it, because Git never looks inside an excluded directory.
+ *
+ * The set of cases is closed. Under semantic versioning, adding or removing one is a breaking change.
  */
 public enum class IgnoreDecision {
     /** A rule excludes the path, either directly or because one of its parent directories is excluded. */

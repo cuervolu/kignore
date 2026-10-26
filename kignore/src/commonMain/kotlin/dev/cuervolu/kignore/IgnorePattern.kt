@@ -16,7 +16,9 @@ import dev.cuervolu.kignore.internal.StepCounter
  * That decision belongs to the rule set built on top of patterns.
  *
  * Patterns follow the byte semantics of Git. Both the pattern and the path are compared as UTF-8, so `?` and
- * bracket expressions consume a single byte: `a?b` does not match `aéb`, but `a??b` does.
+ * bracket expressions consume a single byte: `a?b` does not match `aéb`, but `a??b` does. A lone surrogate, which is not
+ * valid text, is encoded as U+FFFD on every platform, so two strings that differ only in lone surrogates are the same
+ * path for kignore.
  */
 public class IgnorePattern internal constructor(
     /** The line this pattern was compiled from. */

@@ -5,6 +5,8 @@ package dev.cuervolu.kignore
  *
  * Git reports these lines with a warning and never lets them match, which is also what a rule set built on top of
  * [IgnorePattern.parse] is expected to do. Whether to skip, log or reject them is the caller's decision.
+ *
+ * The set of [Reason] values is closed. Under semantic versioning, adding or removing one is a breaking change.
  */
 public class PatternProblem internal constructor(
     /** What is wrong with the line. */
